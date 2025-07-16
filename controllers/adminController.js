@@ -118,3 +118,14 @@ export const updateMyTheatreLayout = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+// API to get all theatres
+export const getAllTheatres = async (req, res) => {
+    try {
+        const theatres = await Theatre.find({});
+        res.json({ success: true, theatres });
+    } catch (error) {
+        console.error(error);
+        res.json({ success: false, message: error.message });
+    }
+};

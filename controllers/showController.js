@@ -21,7 +21,7 @@ export const getNowPlayingMovies = async (req, res)=>{
 // API to add a new show to the database
 export const addShow = async (req, res) =>{
     try {
-        const {movieId, showsInput, showPrice} = req.body
+        const {movieId, showsInput, showPrice, theatreId} = req.body
 
         let movie = await Movie.findById(movieId)
 
@@ -64,6 +64,7 @@ export const addShow = async (req, res) =>{
                 const dateTimeString = `${showDate}T${time}`;
                 showsToCreate.push({
                     movie: movieId,
+                    theatre: theatreId,
                     showDateTime: new Date(dateTimeString),
                     showPrice,
                     occupiedSeats: {}
@@ -92,11 +93,7 @@ export const addShow = async (req, res) =>{
 export const getShows = async (req, res) =>{
     try {
         const shows = await Show.find({showDateTime: {$gte: new Date()}}).populate('movie').sort({ showDateTime: 1 });
-
-        // filter unique shows
-        const uniqueShows = new Set(shows.map(show => show.movie))
-
-        res.json({success: true, shows: Array.from(uniqueShows)})
+        res.json({success: true, shows});
     } catch (error) {
         console.error(error);
         res.json({ success: false, message: error.message });

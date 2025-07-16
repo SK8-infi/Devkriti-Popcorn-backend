@@ -1,6 +1,7 @@
 import { clerkClient } from "@clerk/express";
 import Booking from "../models/Booking.js";
 import Movie from "../models/Movie.js";
+import User from "../models/User.js";
 
 
 // API Controller Function to Get User Bookings
@@ -60,3 +61,14 @@ export const getFavorites = async (req, res) =>{
         res.json({ success: false, message: error.message });
     }
 }
+
+export const getUserById = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ success: false, message: "User not found" });
+        res.json({ success: true, user });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
