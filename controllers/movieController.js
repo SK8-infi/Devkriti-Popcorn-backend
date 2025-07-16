@@ -95,6 +95,21 @@ export async function fetchLatestMovies() {
           console.error('❌ Error downloading backdrop:', e);
         }
       }
+      // Fetch movie details for runtime and genres
+      let runtime = null;
+      let genres = [];
+      try {
+        const detailsRes = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}?language=en-US`, { headers });
+        if (detailsRes.ok) {
+          const details = await detailsRes.json();
+          runtime = details.runtime;
+          genres = details.genres || [];
+        } else {
+          console.error(`❌ Failed to fetch details for movie ${movie.id}`);
+        }
+      } catch (e) {
+        console.error(`❌ Error fetching details for movie ${movie.id}:`, e);
+      }
       return {
         id: movie.id,
         title: movie.title,
@@ -102,6 +117,8 @@ export async function fetchLatestMovies() {
         release_date: movie.release_date,
         poster_url: localFilename ? `/api/images/${localFilename}` : null,
         backdrop_url: localBackdropFilename ? `/api/images/${localBackdropFilename}` : null,
+        runtime,
+        genres,
       };
     }));
     console.log('✅ Updated movie cache.');
