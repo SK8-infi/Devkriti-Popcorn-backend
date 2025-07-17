@@ -62,6 +62,25 @@ export const getFavorites = async (req, res) =>{
     }
 }
 
+// Allowed cities for location selection
+const allowedCities = ["Delhi", "Mumbai", "Gwalior", "Indore", "Pune", "Chennai"];
+
+// API Controller Function to update User City
+export const updateUserCity = async (req, res) => {
+    try {
+        const userId = req.auth().userId;
+        const { city } = req.body;
+        if (!city || typeof city !== 'string' || !allowedCities.includes(city)) {
+            return res.json({ success: false, message: 'Valid city is required.' });
+        }
+        const user = await User.findByIdAndUpdate(userId, { city }, { new: true });
+        if (!user) return res.json({ success: false, message: 'User not found' });
+        res.json({ success: true, city: user.city });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+}
+
 export const getUserById = async (req, res) => {
     try {
         const { userId } = req.params;

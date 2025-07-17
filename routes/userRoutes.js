@@ -1,5 +1,5 @@
 import express from "express";
-import { getFavorites, getUserBookings, updateFavorite, getUserById } from "../controllers/userController.js";
+import { getFavorites, getUserBookings, updateFavorite, getUserById, updateUserCity } from "../controllers/userController.js";
 import User from '../models/User.js';
 import { protectAdmin } from '../middleware/auth.js';
 
@@ -9,6 +9,9 @@ userRouter.get('/bookings', getUserBookings)
 userRouter.post('/update-favorite', updateFavorite)
 userRouter.get('/favorites', getFavorites)
 userRouter.get('/by-id/:userId', getUserById);
+
+// Add route to update user city
+userRouter.post('/update-city', updateUserCity);
 
 // Get current user from MongoDB
 userRouter.get('/me', protectAdmin, async (req, res) => {
