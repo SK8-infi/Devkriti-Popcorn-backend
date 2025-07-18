@@ -94,7 +94,7 @@ export const getMyTheatre = async (req, res) => {
     if (!theatreDoc) return res.status(404).json({ success: false, message: "Theatre not found for this admin" });
     res.json({
       success: true,
-      theatre: { name: theatreDoc.name, layout: theatreDoc.layout },
+      theatre: { _id: theatreDoc._id, name: theatreDoc.name, layout: theatreDoc.layout },
       city: theatreDoc.city
     });
   } catch (err) {
@@ -129,3 +129,15 @@ export const getAllTheatres = async (req, res) => {
         res.json({ success: false, message: error.message });
     }
 };
+
+// API to get a theatre by its ObjectId
+export const getTheatreById = async (req, res) => {
+    try {
+        const { theatreId } = req.params;
+        const theatre = await Theatre.findById(theatreId);
+        if (!theatre) return res.status(404).json({ success: false, message: 'Theatre not found' });
+        res.json({ success: true, theatre });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+}
