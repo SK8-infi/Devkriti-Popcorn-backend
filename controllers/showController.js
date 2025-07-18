@@ -115,12 +115,16 @@ export const getShow = async (req, res) =>{
             if(!dateTime[date]){
                 dateTime[date] = []
             }
+            // Debug log for show and theatre
+            console.log('Show:', show);
+            console.log('Show theatre:', show.theatre);
             dateTime[date].push({ 
                 time: show.showDateTime, 
                 showId: show._id,
-                theatre: show.theatre?._id || show.theatre,
+                theatre: show.theatre?._id ? String(show.theatre._id) : String(show.theatre),
                 theatreName: show.theatre?.name || '',
-                theatreCity: show.theatre?.city || ''
+                theatreCity: show.theatre?.city || '',
+                showPrice: show.showPrice // include showPrice for frontend tally
             })
         })
 
