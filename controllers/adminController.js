@@ -78,7 +78,7 @@ export const setTheatreName = async (req, res) => {
             name: theatre.trim(),
             city,
             admin: userId,
-            layout: [[1,1,1,1,1],[1,1,1,1,1],[1,1,1,1,1]]
+            layout: Array(8).fill().map(() => Array(10).fill(1))
         });
         res.json({ success: true, message: 'Theatre created successfully.', theatre: theatreDoc.name, city: theatreDoc.city });
     } catch (error) {
