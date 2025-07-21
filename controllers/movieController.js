@@ -7,35 +7,25 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const TMDB_BEARER_TOKEN = process.env.TMDB_BEARER_TOKEN || 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxMGJmYmM4NTEzODNiNTQyYjYxNzVmNzlhM2NlMmYwNyIsIm5iZiI6MTc1MTY1NTcxMy42ODksInN1YiI6IjY4NjgyNTIxODlkYzhmYTMwZTUxZDJkMCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.IuNr0dvB_dTbn0BVjgH1faUfVgNWd_IlwOARkjPwDo8';
-const IMAGES_DIR = path.join(__dirname, '..', 'images');
+const MOVIES_JSON_PATH = path.join(process.cwd(), 'movies_latest.json');
+const IMAGES_DIR = path.join(process.cwd(), 'images');
+const TMDB_API_KEY = process.env.TMDB_API_KEY;
+const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/original';
+
 console.log('📁 Images directory:', IMAGES_DIR);
 let MOVIE_DATA = [];
 
-async function downloadImageIfNeeded(posterPath) {
-  if (!posterPath) return null;
-  const filename = posterPath.replace(/^\//, '');
+async function downloadImageIfNeeded(imagePath) {
+  if (!imagePath) return null;
+  const filename = imagePath.replace(/^\//, '');
   const localPath = path.join(IMAGES_DIR, filename);
-  console.log('📁 Checking poster path:', localPath);
-  const exists = await fs.pathExists(localPath);
-  if (!exists) {
-    console.log(`📥 Downloading poster: ${filename}`);
-    const url = `https://image.tmdb.org/t/p/original${posterPath}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Failed to download image');
-    const buffer = await res.arrayBuffer();
-    await fs.outputFile(localPath, Buffer.from(buffer));
-    // Wait for file system to flush (100ms)
-    await new Promise(resolve => setTimeout(resolve, 100));
-    // Double-check file exists
-    let tries = 0;
-    while (!(await fs.pathExists(localPath)) && tries < 5) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      tries++;
-    }
-    console.log(`✅ Downloaded poster: ${filename}`);
-  } else {
-    console.log(`📁 Poster already exists: ${filename}`);
-  }
+  if (await fs.pathExists(localPath)) return filename;
+  const url = `${TMDB_IMAGE_BASE}${imagePath}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Failed to download image');
+  const buffer = await res.arrayBuffer();
+  await fs.outputFile(localPath, Buffer.from(buffer));
   return filename;
 }
 
@@ -127,22 +117,93 @@ export async function fetchLatestMovies() {
   }
 }
 
+export async function fetchAndCacheLatestMovies() {
+  try {
+    // Fetch both page 1 and page 2 to get 40 movie IDs
+    const url1 = `${TMDB_BASE_URL}/movie/now_playing?language=en-US&page=1`;
+    const url2 = `${TMDB_BASE_URL}/movie/now_playing?language=en-US&page=2`;
+    const [res1, res2] = await Promise.all([
+      fetch(url1, { headers: { Authorization: `Bearer ${TMDB_API_KEY}` } }),
+      fetch(url2, { headers: { Authorization: `Bearer ${TMDB_API_KEY}` } })
+    ]);
+    if (!res1.ok || !res2.ok) throw new Error('Failed to fetch TMDB');
+    const json1 = await res1.json();
+    const json2 = await res2.json();
+    const moviesBasic = [
+      ...(json1.results || []),
+      ...(json2.results || [])
+    ].slice(0, 40);
+
+    // Fetch full details for each movie
+    const processed = await Promise.all(moviesBasic.map(async movie => {
+      // Fetch full details
+      const detailsRes = await fetch(`${TMDB_BASE_URL}/movie/${movie.id}?language=en-US`, { headers: { Authorization: `Bearer ${TMDB_API_KEY}` } });
+      let details = {};
+      if (detailsRes.ok) {
+        details = await detailsRes.json();
+      }
+      // Fetch credits (cast)
+      let casts = [];
+      try {
+        const creditsRes = await fetch(`${TMDB_BASE_URL}/movie/${movie.id}/credits?language=en-US`, { headers: { Authorization: `Bearer ${TMDB_API_KEY}` } });
+        if (creditsRes.ok) {
+          const credits = await creditsRes.json();
+          casts = credits.cast || [];
+        }
+      } catch (e) {
+        // Ignore errors, leave casts empty
+      }
+      let posterFilename = null;
+      let backdropFilename = null;
+      if (movie.poster_path) posterFilename = await downloadImageIfNeeded(movie.poster_path);
+      if (movie.backdrop_path) backdropFilename = await downloadImageIfNeeded(movie.backdrop_path);
+      // Save all TMDB fields from details, add casts, override poster/backdrop paths with local URLs
+      return {
+        ...details,
+        casts,
+        poster_url: posterFilename ? `/api/images/${posterFilename}` : null,
+        backdrop_url: backdropFilename ? `/api/images/${backdropFilename}` : null,
+      };
+    }));
+    // Remove duplicate movies by ID
+    const uniqueProcessed = [];
+    const seenIds = new Set();
+    for (const movie of processed) {
+      if (!seenIds.has(movie.id)) {
+        uniqueProcessed.push(movie);
+        seenIds.add(movie.id);
+      }
+    }
+    await fs.writeJson(MOVIES_JSON_PATH, { movies: uniqueProcessed }, { spaces: 2 });
+    console.log('✅ Cached latest movies to movies_latest.json');
+  } catch (e) {
+    console.error('❌ Error caching latest movies:', e);
+  }
+}
+
+export async function getMovieById(req, res) {
+  try {
+    const { id } = req.params;
+    const data = await fs.readJson(MOVIES_JSON_PATH);
+    console.log('Looking for movie ID:', id);
+    console.log('All IDs:', data.movies.map(m => m.id));
+    const movie = data.movies.find(m => String(m.id) === String(id));
+    if (!movie) return res.status(404).json({ error: 'Movie not found' });
+    res.json({ movie });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to read movies cache' });
+  }
+}
+
 export function startMovieFetcher() {
   fetchLatestMovies();
   setInterval(fetchLatestMovies, 24 * 60 * 60 * 1000);
 }
 
 export function getLatestMovies(req, res) {
-  // If no movies loaded yet, fetch them first
-  if (MOVIE_DATA.length === 0) {
-    console.log('🔄 No movies cached, fetching now...');
-    fetchLatestMovies().then(() => {
-      res.json({ movies: MOVIE_DATA });
-    }).catch(err => {
-      console.error('❌ Error in getLatestMovies:', err);
-      res.status(500).json({ error: 'Failed to fetch movies' });
+  fs.readJson(MOVIES_JSON_PATH)
+    .then(data => res.json(data))
+    .catch(err => {
+      res.status(500).json({ error: 'Failed to read movies cache' });
     });
-  } else {
-    res.json({ movies: MOVIE_DATA });
-  }
 } 
