@@ -11,7 +11,7 @@ import adminRouter from './routes/adminRoutes.js';
 import userRouter from './routes/userRoutes.js';
 import movieRouter from './routes/movieRoutes.js';
 import { stripeWebhooks } from './controllers/stripeWebhooks.js';
-import { startMovieFetcher } from './controllers/movieController.js';
+import { startMovieFetcher, fetchAndCacheLatestMovies } from './controllers/movieController.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs-extra';
@@ -35,6 +35,9 @@ await connectDB();
 
 // Start TMDB movie fetcher
 startMovieFetcher();
+
+// Fetch and cache latest movies on server startup
+fetchAndCacheLatestMovies();
 
 // Stripe Webhooks Route
 app.use('/api/stripe', express.raw({type: 'application/json'}), stripeWebhooks);
