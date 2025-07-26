@@ -160,11 +160,12 @@ export async function fetchAndCacheLatestMovies() {
         const videosRes = await fetch(`${TMDB_BASE_URL}/movie/${movie.id}/videos?language=en-US`, { headers: { Authorization: `Bearer ${TMDB_API_KEY}` } });
         if (videosRes.ok) {
           const videos = await videosRes.json();
-          // Filter for YouTube trailers only
+          // Filter for official YouTube trailers only
           trailers = (videos.results || [])
             .filter(video => 
               video.site === 'YouTube' && 
-              (video.type === 'Trailer' || video.type === 'Teaser') &&
+              video.type === 'Trailer' &&
+              video.official === true &&
               video.key
             )
             .map(video => ({
@@ -181,24 +182,55 @@ export async function fetchAndCacheLatestMovies() {
               thumbnail_url: `https://img.youtube.com/vi/${video.key}/maxresdefault.jpg`
             }))
             .sort((a, b) => {
-              // Prioritize official trailers, then by published date
-              if (a.official && !b.official) return -1;
-              if (!a.official && b.official) return 1;
+              // Sort by published date (newest first) since all are official
               return new Date(b.published_at) - new Date(a.published_at);
             });
         }
       } catch (e) {
         console.error(`❌ Error fetching videos for movie ${movie.id}:`, e);
       }
+
+      // Fetch movie logos
+      let logos = [];
+      try {
+        const imagesRes = await fetch(`${TMDB_BASE_URL}/movie/${movie.id}/images`, { headers: { Authorization: `Bearer ${TMDB_API_KEY}` } });
+        if (imagesRes.ok) {
+          const images = await imagesRes.json();
+          // Filter for English logos only and get the best quality
+          logos = (images.logos || [])
+            .filter(logo => 
+              logo.iso_639_1 === 'en' || logo.iso_639_1 === null // English or language-neutral logos
+            )
+            .map(logo => ({
+              file_path: logo.file_path,
+              width: logo.width,
+              height: logo.height,
+              aspect_ratio: logo.aspect_ratio,
+              vote_average: logo.vote_average,
+              vote_count: logo.vote_count,
+              url: `${TMDB_IMAGE_BASE}${logo.file_path}`
+            }))
+            .sort((a, b) => {
+              // Sort by vote average first, then by vote count, then by resolution
+              if (b.vote_average !== a.vote_average) return b.vote_average - a.vote_average;
+              if (b.vote_count !== a.vote_count) return b.vote_count - a.vote_count;
+              return (b.width * b.height) - (a.width * a.height);
+            });
+        }
+      } catch (e) {
+        console.error(`❌ Error fetching logos for movie ${movie.id}:`, e);
+      }
+
       let posterFilename = null;
       let backdropFilename = null;
       if (movie.poster_path) posterFilename = await downloadImageIfNeeded(movie.poster_path);
       if (movie.backdrop_path) backdropFilename = await downloadImageIfNeeded(movie.backdrop_path);
-      // Save all TMDB fields from details, add casts and trailers, override poster/backdrop paths with local URLs
+      // Save all TMDB fields from details, add casts, trailers, and logos, override poster/backdrop paths with local URLs
       return {
         ...details,
         casts,
         trailers,
+        logos,
         poster_url: posterFilename ? `/api/images/${posterFilename}` : null,
         backdrop_url: backdropFilename ? `/api/images/${backdropFilename}` : null,
       };
