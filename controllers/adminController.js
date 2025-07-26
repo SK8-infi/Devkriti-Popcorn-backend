@@ -94,12 +94,7 @@ export const getMyTheatre = async (req, res) => {
     if (!theatreDoc) return res.status(404).json({ success: false, message: "Theatre not found for this admin" });
     res.json({
       success: true,
-      theatre: { 
-        _id: theatreDoc._id, 
-        name: theatreDoc.name, 
-        layout: theatreDoc.layout,
-        rooms: theatreDoc.rooms || []
-      },
+      theatre: { _id: theatreDoc._id, name: theatreDoc.name, layout: theatreDoc.layout },
       city: theatreDoc.city
     });
   } catch (err) {
@@ -121,68 +116,6 @@ export const updateMyTheatreLayout = async (req, res) => {
     res.json({ success: true, message: "Layout updated successfully" });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error" });
-  }
-};
-
-// Add a room to the authenticated admin's theatre
-export const addRoomToTheatre = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const { name, type, layout } = req.body;
-    if (!name || !type || !Array.isArray(layout) || !Array.isArray(layout[0])) {
-      return res.status(400).json({ success: false, message: 'Invalid room data' });
-    }
-    const theatreDoc = await Theatre.findOne({ admin: userId });
-    if (!theatreDoc) return res.status(404).json({ success: false, message: 'Theatre not found for this admin' });
-    theatreDoc.rooms.push({ name, type, layout });
-    await theatreDoc.save();
-    res.json({ success: true, message: 'Room added!', rooms: theatreDoc.rooms });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-};
-
-// Update a room in the authenticated admin's theatre
-export const updateRoomInTheatre = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const { roomId, name, type, layout } = req.body;
-    if (!roomId || !name || !type || !Array.isArray(layout) || !Array.isArray(layout[0])) {
-      return res.status(400).json({ success: false, message: 'Invalid room data' });
-    }
-    const theatreDoc = await Theatre.findOne({ admin: userId });
-    if (!theatreDoc) return res.status(404).json({ success: false, message: 'Theatre not found for this admin' });
-    
-    const roomIndex = theatreDoc.rooms.findIndex(room => String(room._id) === String(roomId));
-    if (roomIndex === -1) {
-      return res.status(404).json({ success: false, message: 'Room not found' });
-    }
-    
-    theatreDoc.rooms[roomIndex] = { ...theatreDoc.rooms[roomIndex], name, type, layout };
-    await theatreDoc.save();
-    res.json({ success: true, message: 'Room updated!', rooms: theatreDoc.rooms });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-};
-
-// Delete a room from the authenticated admin's theatre
-export const deleteRoomFromTheatre = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const { roomId } = req.body;
-    if (!roomId) return res.status(400).json({ success: false, message: 'roomId is required' });
-    const theatreDoc = await Theatre.findOne({ admin: userId });
-    if (!theatreDoc) return res.status(404).json({ success: false, message: 'Theatre not found for this admin' });
-    const initialLength = theatreDoc.rooms.length;
-    theatreDoc.rooms = theatreDoc.rooms.filter(room => String(room._id) !== String(roomId));
-    if (theatreDoc.rooms.length === initialLength) {
-      return res.status(404).json({ success: false, message: 'Room not found' });
-    }
-    await theatreDoc.save();
-    res.json({ success: true, message: 'Room deleted!', rooms: theatreDoc.rooms });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 

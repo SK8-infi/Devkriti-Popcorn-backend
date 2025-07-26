@@ -153,52 +153,14 @@ export async function fetchAndCacheLatestMovies() {
       } catch (e) {
         // Ignore errors, leave casts empty
       }
-
-      // Fetch videos/trailers
-      let trailers = [];
-      try {
-        const videosRes = await fetch(`${TMDB_BASE_URL}/movie/${movie.id}/videos?language=en-US`, { headers: { Authorization: `Bearer ${TMDB_API_KEY}` } });
-        if (videosRes.ok) {
-          const videos = await videosRes.json();
-          // Filter for YouTube trailers only
-          trailers = (videos.results || [])
-            .filter(video => 
-              video.site === 'YouTube' && 
-              (video.type === 'Trailer' || video.type === 'Teaser') &&
-              video.key
-            )
-            .map(video => ({
-              id: video.id,
-              key: video.key,
-              name: video.name,
-              type: video.type,
-              site: video.site,
-              size: video.size,
-              official: video.official,
-              published_at: video.published_at,
-              youtube_url: `https://www.youtube.com/watch?v=${video.key}`,
-              youtube_embed_url: `https://www.youtube.com/embed/${video.key}`,
-              thumbnail_url: `https://img.youtube.com/vi/${video.key}/maxresdefault.jpg`
-            }))
-            .sort((a, b) => {
-              // Prioritize official trailers, then by published date
-              if (a.official && !b.official) return -1;
-              if (!a.official && b.official) return 1;
-              return new Date(b.published_at) - new Date(a.published_at);
-            });
-        }
-      } catch (e) {
-        console.error(`❌ Error fetching videos for movie ${movie.id}:`, e);
-      }
       let posterFilename = null;
       let backdropFilename = null;
       if (movie.poster_path) posterFilename = await downloadImageIfNeeded(movie.poster_path);
       if (movie.backdrop_path) backdropFilename = await downloadImageIfNeeded(movie.backdrop_path);
-      // Save all TMDB fields from details, add casts and trailers, override poster/backdrop paths with local URLs
+      // Save all TMDB fields from details, add casts, override poster/backdrop paths with local URLs
       return {
         ...details,
         casts,
-        trailers,
         poster_url: posterFilename ? `/api/images/${posterFilename}` : null,
         backdrop_url: backdropFilename ? `/api/images/${backdropFilename}` : null,
       };
@@ -243,14 +205,5 @@ export function getLatestMovies(req, res) {
     .then(data => res.json(data))
     .catch(err => {
       res.status(500).json({ error: 'Failed to read movies cache' });
-    });
-}
-
-export function getAllMovies(req, res) {
-  fs.readJson(MOVIES_JSON_PATH)
-    .then(data => res.json({ success: true, movies: data.movies || [] }))
-    .catch(err => {
-      console.error('❌ Error reading movies cache:', err);
-      res.status(500).json({ success: false, error: 'Failed to read movies cache' });
     });
 } 
