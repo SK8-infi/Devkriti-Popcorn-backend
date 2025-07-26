@@ -21,7 +21,7 @@ export const getNowPlayingMovies = async (req, res)=>{
 // API to add a new show to the database
 export const addShow = async (req, res) =>{
     try {
-        const {movieId, showsInput, showPrice, theatreId} = req.body
+        const {movieId, showsInput, showPrice, theatreId, roomId} = req.body
 
         let movie = await Movie.findById(movieId)
 
@@ -61,7 +61,8 @@ export const addShow = async (req, res) =>{
                     theatre: theatreId,
                     showDateTime: new Date(dateTimeString),
                     showPrice,
-                    occupiedSeats: {}
+                    occupiedSeats: {},
+                    room: roomId
                 })
             })
         });
