@@ -279,11 +279,83 @@ export function getLatestMovies(req, res) {
     });
 }
 
-export function getAllMovies(req, res) {
-  fs.readJson(MOVIES_JSON_PATH)
-    .then(data => res.json({ success: true, movies: data.movies || [] }))
-    .catch(err => {
-      console.error('❌ Error reading movies cache:', err);
-      res.status(500).json({ success: false, error: 'Failed to read movies cache' });
-    });
+export async function getAllMovies(req, res) {
+  try {
+    // First try to get movies from MongoDB database (much faster)
+    try {
+      const Movie = (await import('../models/Movie.js')).default;
+      const movies = await Movie.find({}).limit(50).sort({ vote_average: -1 });
+      
+      if (movies.length > 0) {
+        console.log(`✅ Returning ${movies.length} movies from database`);
+        return res.json({ success: true, movies });
+      }
+    } catch (dbErr) {
+      console.log('📝 Database not available, trying file cache...');
+    }
+    
+    // Fallback to file, but limit the data to prevent timeout
+    const data = await fs.readJson(MOVIES_JSON_PATH);
+    const movies = data.movies?.slice(0, 30) || []; // Limit to 30 movies
+    
+    console.log(`✅ Returning ${movies.length} movies from file cache`);
+    res.json({ success: true, movies });
+    
+  } catch (fileErr) {
+    console.error('❌ File cache failed, fetching from TMDB API...');
+    
+    // Last resort: Fetch directly from TMDB API
+    try {
+      const url = 'https://api.themoviedb.org/3/movie/now_playing?language=en-US&page=1';
+      const headers = {
+        'Authorization': `Bearer ${TMDB_BEARER_TOKEN}`,
+        'accept': 'application/json',
+      };
+      
+      const response = await fetch(url, { headers });
+      if (!response.ok) throw new Error('TMDB API failed');
+      
+      const tmdbData = await response.json();
+      const movies = tmdbData.results?.slice(0, 20) || [];
+      
+      console.log(`✅ Returning ${movies.length} movies from TMDB API`);
+      res.json({ success: true, movies });
+      
+         } catch (apiErr) {
+       console.error('❌ All data sources failed:', apiErr);
+       res.json({ success: true, movies: [] });
+     }
+   }
+}
+
+// Function to populate database from JSON cache (call this once to migrate data)
+export async function populateMoviesFromCache(req, res) {
+  try {
+    const Movie = (await import('../models/Movie.js')).default;
+    const data = await fs.readJson(MOVIES_JSON_PATH);
+    const movies = data.movies || [];
+    
+    console.log(`📤 Migrating ${movies.length} movies to database...`);
+    
+    // Clear existing movies and insert new ones
+    await Movie.deleteMany({});
+    
+    // Insert movies in batches to avoid timeout
+    const batchSize = 50;
+    let inserted = 0;
+    
+    for (let i = 0; i < movies.length; i += batchSize) {
+      const batch = movies.slice(i, i + batchSize);
+      await Movie.insertMany(batch, { ordered: false });
+      inserted += batch.length;
+      console.log(`📝 Inserted ${inserted}/${movies.length} movies`);
+    }
+    
+    console.log(`✅ Successfully migrated ${inserted} movies to database`);
+    res.json({ success: true, message: `Migrated ${inserted} movies to database` });
+    
+  } catch (err) {
+    console.error('❌ Error populating database:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 } 
