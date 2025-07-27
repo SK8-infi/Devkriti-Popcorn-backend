@@ -196,26 +196,27 @@ export async function fetchAndCacheLatestMovies() {
         const imagesRes = await fetch(`${TMDB_BASE_URL}/movie/${movie.id}/images`, { headers: { Authorization: `Bearer ${TMDB_API_KEY}` } });
         if (imagesRes.ok) {
           const images = await imagesRes.json();
-          // Filter for English logos only and get the best quality
+          // Filter for English logos, prioritize by vote average and size
           logos = (images.logos || [])
             .filter(logo => 
-              logo.iso_639_1 === 'en' || logo.iso_639_1 === null // English or language-neutral logos
+              logo.iso_639_1 === 'en' || logo.iso_639_1 === null // English or no language
             )
             .map(logo => ({
               file_path: logo.file_path,
               width: logo.width,
               height: logo.height,
-              aspect_ratio: logo.aspect_ratio,
-              vote_average: logo.vote_average,
-              vote_count: logo.vote_count,
+              vote_average: logo.vote_average || 0,
+              vote_count: logo.vote_count || 0,
               url: `${TMDB_IMAGE_BASE}${logo.file_path}`
             }))
             .sort((a, b) => {
-              // Sort by vote average first, then by vote count, then by resolution
-              if (b.vote_average !== a.vote_average) return b.vote_average - a.vote_average;
-              if (b.vote_count !== a.vote_count) return b.vote_count - a.vote_count;
+              // Sort by vote average first, then by size (larger is better)
+              if (b.vote_average !== a.vote_average) {
+                return b.vote_average - a.vote_average;
+              }
               return (b.width * b.height) - (a.width * a.height);
-            });
+            })
+            .slice(0, 1); // Take only the best logo
         }
       } catch (e) {
         console.error(`❌ Error fetching logos for movie ${movie.id}:`, e);
