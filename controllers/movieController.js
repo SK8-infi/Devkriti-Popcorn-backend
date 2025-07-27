@@ -1,7 +1,15 @@
-import fetch from 'node-fetch';
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+// Dynamic fetch import function
+async function getFetch() {
+  if (globalThis.fetch) {
+    return globalThis.fetch;
+  }
+  const nodeFetch = await import('node-fetch');
+  return nodeFetch.default;
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -279,53 +287,88 @@ export function getLatestMovies(req, res) {
     });
 }
 
+// Debug endpoint to check what's working
+export function debugMovies(req, res) {
+  const debug = {
+    timestamp: new Date().toISOString(),
+    environment: {
+      NODE_ENV: process.env.NODE_ENV,
+      MONGO_URI: process.env.MONGO_URI ? 'SET' : 'MISSING',
+      TMDB_API_KEY: process.env.TMDB_API_KEY ? 'SET' : 'MISSING',
+      TMDB_BEARER_TOKEN: TMDB_BEARER_TOKEN ? 'SET' : 'MISSING',
+    },
+    files: {
+      moviesJsonExists: fs.existsSync(MOVIES_JSON_PATH),
+      moviesJsonPath: MOVIES_JSON_PATH,
+      imagesDir: IMAGES_DIR,
+      imagesDirExists: fs.existsSync(IMAGES_DIR),
+    }
+  };
+  
+  console.log('🔍 Debug info:', debug);
+  res.json({ success: true, debug });
+}
+
 export async function getAllMovies(req, res) {
   try {
-    // First try to get movies from MongoDB database (much faster)
+    console.log('📡 getAllMovies called');
+    
+    // Try direct TMDB API first (most reliable)
     try {
-      const Movie = (await import('../models/Movie.js')).default;
-      const movies = await Movie.find({}).limit(50).sort({ vote_average: -1 });
-      
-      if (movies.length > 0) {
-        console.log(`✅ Returning ${movies.length} movies from database`);
-        return res.json({ success: true, movies });
-      }
-    } catch (dbErr) {
-      console.log('📝 Database not available, trying file cache...');
-    }
-    
-    // Fallback to file, but limit the data to prevent timeout
-    const data = await fs.readJson(MOVIES_JSON_PATH);
-    const movies = data.movies?.slice(0, 30) || []; // Limit to 30 movies
-    
-    console.log(`✅ Returning ${movies.length} movies from file cache`);
-    res.json({ success: true, movies });
-    
-  } catch (fileErr) {
-    console.error('❌ File cache failed, fetching from TMDB API...');
-    
-    // Last resort: Fetch directly from TMDB API
-    try {
+      const fetch = await getFetch();
       const url = 'https://api.themoviedb.org/3/movie/now_playing?language=en-US&page=1';
       const headers = {
         'Authorization': `Bearer ${TMDB_BEARER_TOKEN}`,
         'accept': 'application/json',
       };
       
+      console.log('🌐 Fetching from TMDB API...');
       const response = await fetch(url, { headers });
-      if (!response.ok) throw new Error('TMDB API failed');
       
-      const tmdbData = await response.json();
-      const movies = tmdbData.results?.slice(0, 20) || [];
-      
-      console.log(`✅ Returning ${movies.length} movies from TMDB API`);
-      res.json({ success: true, movies });
-      
-         } catch (apiErr) {
-       console.error('❌ All data sources failed:', apiErr);
-       res.json({ success: true, movies: [] });
-     }
-   }
+      if (response.ok) {
+        const tmdbData = await response.json();
+        const movies = tmdbData.results?.slice(0, 20) || [];
+        
+        console.log(`✅ Returning ${movies.length} movies from TMDB API`);
+        return res.json({ success: true, movies, source: 'tmdb_api' });
+      }
+    } catch (apiErr) {
+      console.error('❌ TMDB API failed:', apiErr.message);
+    }
+    
+    // Fallback to file cache if API fails
+    try {
+      console.log('📄 Trying file cache...');
+      if (fs.existsSync(MOVIES_JSON_PATH)) {
+        const data = await fs.readJson(MOVIES_JSON_PATH);
+        const movies = data.movies?.slice(0, 20) || [];
+        
+        console.log(`✅ Returning ${movies.length} movies from file cache`);
+        return res.json({ success: true, movies, source: 'file_cache' });
+      } else {
+        console.log('❌ Movies file does not exist');
+      }
+    } catch (fileErr) {
+      console.error('❌ File cache failed:', fileErr.message);
+    }
+    
+    // Last resort: empty array with debug info
+    console.log('❌ All sources failed, returning empty array');
+    res.json({ 
+      success: true, 
+      movies: [], 
+      source: 'fallback',
+      message: 'No data sources available'
+    });
+    
+  } catch (err) {
+    console.error('❌ Critical error in getAllMovies:', err);
+    res.status(500).json({ 
+      success: false, 
+      error: err.message,
+      source: 'error'
+    });
+  }
 }
 
 // Function to populate database from JSON cache (call this once to migrate data)
