@@ -1,5 +1,5 @@
 import express from "express";
-import { getFavorites, getUserBookings, updateFavorite, getUserById, updateUserCity } from "../controllers/userController.js";
+import { getFavorites, getUserBookings, updateFavorite, getUserById, updateUserCity, updateUserCityPublic } from "../controllers/userController.js";
 import User from '../models/User.js';
 import { protectAdmin } from '../middleware/auth.js';
 
@@ -10,8 +10,11 @@ userRouter.post('/update-favorite', updateFavorite)
 userRouter.get('/favorites', getFavorites)
 userRouter.get('/by-id/:userId', getUserById);
 
-// Add route to update user city
+// Add route to update user city (authenticated users)
 userRouter.post('/update-city', updateUserCity);
+
+// Add route to update user city (non-authenticated users)
+userRouter.post('/update-city-public', updateUserCityPublic);
 
 // Get current user from MongoDB
 userRouter.get('/me', protectAdmin, async (req, res) => {
