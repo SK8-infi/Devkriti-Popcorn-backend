@@ -70,7 +70,7 @@ export const getFavorites = async (req, res) =>{
 // Allowed cities for location selection
 const allowedCities = ["Delhi", "Mumbai", "Gwalior", "Indore", "Pune", "Chennai"];
 
-// API Controller Function to update User City
+// API Controller Function to update User City (for authenticated users)
 export const updateUserCity = async (req, res) => {
     try {
         const userId = req.user._id;
@@ -81,6 +81,21 @@ export const updateUserCity = async (req, res) => {
         const user = await User.findByIdAndUpdate(userId, { city }, { new: true });
         if (!user) return res.json({ success: false, message: 'User not found' });
         res.json({ success: true, city: user.city });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+}
+
+// API Controller Function to update User City (for non-authenticated users)
+export const updateUserCityPublic = async (req, res) => {
+    try {
+        const { city } = req.body;
+        if (!city || typeof city !== 'string' || !allowedCities.includes(city)) {
+            return res.json({ success: false, message: 'Valid city is required.' });
+        }
+        // For non-authenticated users, just return success
+        // The frontend will handle storing in localStorage
+        res.json({ success: true, city: city });
     } catch (error) {
         res.json({ success: false, message: error.message });
     }
