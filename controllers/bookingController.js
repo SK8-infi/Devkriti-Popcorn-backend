@@ -1,7 +1,7 @@
-import { inngest } from "../inngest/index.js";
 import Booking from "../models/Booking.js";
 import Show from "../models/Show.js"
 import stripe from 'stripe'
+import { setBookingTimeout } from '../utils/bookingTimeout.js';
 
 
 // Function to check availability of selected seats for a movie
@@ -23,7 +23,7 @@ const checkSeatsAvailability = async (showId, selectedSeats)=>{
 
 export const createBooking = async (req, res)=>{
     try {
-        const {userId} = req.auth();
+        const userId = req.user._id;
         const {showId, selectedSeats} = req.body;
         const { origin } = req.headers;
 
@@ -82,13 +82,8 @@ export const createBooking = async (req, res)=>{
          booking.paymentLink = session.url
          await booking.save()
 
-         // Run Inngest Sheduler Function to check payment status after 10 minutes
-         await inngest.send({
-            name: "app/checkpayment",
-            data: {
-                bookingId: booking._id.toString()
-            }
-         })
+         // Set custom timeout for booking payment check (10 minutes)
+         setBookingTimeout(booking._id.toString());
 
          res.json({success: true, url: session.url})
 

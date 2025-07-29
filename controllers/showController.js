@@ -1,7 +1,7 @@
 import axios from "axios"
 import Movie from "../models/Movie.js";
 import Show from "../models/Show.js";
-import { inngest } from "../inngest/index.js";
+import { sendNewShowNotifications } from '../utils/emailService.js';
 import fs from 'fs-extra';
 import path from 'path';
 
@@ -71,11 +71,10 @@ export const addShow = async (req, res) =>{
             await Show.insertMany(showsToCreate);
         }
 
-         //  Trigger Inngest event
-         await inngest.send({
-            name: "app/show.added",
-             data: {movieTitle: movie.title}
-         })
+         // Send new show notifications to all users
+         sendNewShowNotifications(movie.title).catch(error => {
+             console.error('Error sending new show notifications:', error);
+         });
 
         res.json({success: true, message: 'Show Added successfully.'})
     } catch (error) {

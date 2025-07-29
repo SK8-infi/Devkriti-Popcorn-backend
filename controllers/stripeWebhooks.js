@@ -1,6 +1,7 @@
 import stripe from "stripe";
 import Booking from '../models/Booking.js'
-import { inngest } from "../inngest/index.js";
+import { clearBookingTimeout } from '../utils/bookingTimeout.js';
+import { sendBookingConfirmationEmail } from '../utils/emailService.js';
 
 export const stripeWebhooks = async (request, response)=>{
     const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
@@ -30,11 +31,13 @@ export const stripeWebhooks = async (request, response)=>{
                     paymentLink: ""
                 })
 
-                 // Send Confirmation Email
-                 await inngest.send({
-                    name: "app/show.booked",
-                    data: {bookingId}
-                 })
+                // Clear booking timeout (payment completed)
+                clearBookingTimeout(bookingId);
+
+                // Send confirmation email
+                sendBookingConfirmationEmail(bookingId).catch(error => {
+                    console.error('Error sending confirmation email:', error);
+                });
                 
                 break;
             }
