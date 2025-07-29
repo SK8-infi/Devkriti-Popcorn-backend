@@ -1,22 +1,28 @@
 import nodemailer from 'nodemailer';
 
+// Gmail SMTP configuration
 const transporter = nodemailer.createTransport({
-  host: "smtp-relay.brevo.com",
-  port: 587,
+  service: 'gmail',
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    user: process.env.EMAIL_USER, // Your Gmail address
+    pass: process.env.EMAIL_APP_PASSWORD, // Gmail App Password (not regular password)
   },
 });
 
-const sendEmail = async ({ to, subject, body })=>{
+const sendEmail = async ({ to, subject, body }) => {
+    try {
     const response = await transporter.sendMail({
-        from: process.env.SENDER_EMAIL,
+            from: `"Popcorn Theater" <${process.env.EMAIL_USER}>`,
         to,
         subject,
         html: body,
-    })
-    return response
+        });
+        console.log('Email sent successfully:', response.messageId);
+        return response;
+    } catch (error) {
+        console.error('Email sending failed:', error);
+        throw error;
+    }
 }
 
 export default sendEmail;

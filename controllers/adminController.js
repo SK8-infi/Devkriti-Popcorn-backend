@@ -2,7 +2,6 @@ import Booking from "../models/Booking.js"
 import Show from "../models/Show.js";
 import User from "../models/User.js";
 import Theatre from '../models/Theatre.js';
-import { clerkClient } from '@clerk/express';
 
 
 // API to check if user is admin
@@ -59,7 +58,7 @@ export const getAllBookings = async (req, res) =>{
 
 export const setTheatreName = async (req, res) => {
     try {
-        const { userId } = req.auth();
+        const userId = req.user._id;
         const { theatre, city } = req.body;
         const allowedCities = ["Delhi", "Mumbai", "Gwalior", "Indore", "Pune", "Chennai"];
         if (!theatre || typeof theatre !== 'string' || !theatre.trim()) {
