@@ -206,4 +206,15 @@ export const getTheatreById = async (req, res) => {
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
-}
+};
+
+// API to get all users (for admin management)
+export const getAllUsers = async (req, res) => {
+    try {
+        const users = await User.find({}).select('-__v').sort({ createdAt: -1 });
+        res.json({ success: true, users });
+    } catch (error) {
+        console.error('Get all users error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};

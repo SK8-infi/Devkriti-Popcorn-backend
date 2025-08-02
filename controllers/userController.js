@@ -271,6 +271,14 @@ export const checkAdAccess = async (req, res) => {
         const adEmails = process.env.AD_EMAILS ? process.env.AD_EMAILS.split(',') : [];
         const hasAdAccess = adEmails.includes(user.email);
 
+        // Debug logging
+        console.log('🔍 AD Access Check Debug:');
+        console.log('  User ID:', userId);
+        console.log('  User Email:', user.email);
+        console.log('  AD_EMAILS:', process.env.AD_EMAILS);
+        console.log('  Parsed AD Emails:', adEmails);
+        console.log('  Has AD Access:', hasAdAccess);
+
         res.json({ 
             success: true, 
             hasAdAccess,
