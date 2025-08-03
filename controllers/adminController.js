@@ -125,31 +125,41 @@ export const setTheatreName = async (req, res) => {
         const { theatre, city, address } = req.body;
         const allowedCities = ["Delhi", "Mumbai", "Gwalior", "Indore", "Pune", "Chennai"];
         
+        console.log('🔧 setTheatreName called:', { userId, theatre, city, address });
+        
         // Validate user exists and has admin role
         const user = await User.findById(userId);
         if (!user) {
+            console.log('❌ User not found:', userId);
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
         if (user.role !== 'admin') {
+            console.log('❌ User is not admin:', user.role);
             return res.status(403).json({ success: false, message: 'Only admins can create theatres.' });
         }
         
         if (!theatre || typeof theatre !== 'string' || !theatre.trim()) {
+            console.log('❌ Invalid theatre name:', theatre);
             return res.json({ success: false, message: 'Theatre name is required.' });
         }
         if (!city || typeof city !== 'string' || !allowedCities.includes(city)) {
+            console.log('❌ Invalid city:', city);
             return res.json({ success: false, message: 'Valid city is required.' });
         }
+        
+        console.log('✅ Validation passed, processing theatre setup...');
         
         // Check if a theatre already exists for this admin
         let theatreDoc = await Theatre.findOne({ admin: userId });
         if (theatreDoc) {
+            console.log('🔄 Updating existing theatre:', theatreDoc._id);
             // Update existing theatre
             theatreDoc.name = theatre.trim();
             theatreDoc.city = city;
             theatreDoc.address = address || '';
             await theatreDoc.save();
         } else {
+            console.log('🆕 Creating new theatre for admin:', userId);
             // Create new theatre for this admin using Google ID reference
             theatreDoc = await Theatre.create({
                 name: theatre.trim(),
@@ -160,16 +170,19 @@ export const setTheatreName = async (req, res) => {
             });
         }
         
+        console.log('✅ Theatre setup completed:', { theatreId: theatreDoc._id, name: theatreDoc.name });
+        
         res.json({ 
             success: true, 
             message: 'Theatre updated successfully.', 
             theatre: theatreDoc.name, 
             city: theatreDoc.city,
             address: theatreDoc.address,
+            theatreId: theatreDoc._id, // Return the theatre ID
             adminId: theatreDoc.admin // Return the admin ID for verification
         });
     } catch (error) {
-        console.error('Set theatre name error:', error);
+        console.error('❌ Set theatre name error:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
