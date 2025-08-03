@@ -32,17 +32,32 @@ export const authenticateToken = async (req, res, next) => {
     }
 };
 
-// Check if user is admin
+// Check if user is admin or owner (admin privileges)
 export const protectAdmin = async (req, res, next) => {
     try {
         await authenticateToken(req, res, () => {
-            if (req.user.role !== 'admin') {
+            if (req.user.role !== 'admin' && req.user.role !== 'owner') {
                 return res.status(403).json({ success: false, message: 'Admin access required' });
             }
             next();
         });
     } catch (error) {
         console.error('Admin auth error:', error);
+        return res.status(500).json({ success: false, message: 'Authentication error' });
+    }
+};
+
+// Check if user is owner (owner-specific access)
+export const protectOwner = async (req, res, next) => {
+    try {
+        await authenticateToken(req, res, () => {
+            if (req.user.role !== 'owner') {
+                return res.status(403).json({ success: false, message: 'Owner access required' });
+            }
+            next();
+        });
+    } catch (error) {
+        console.error('Owner auth error:', error);
         return res.status(500).json({ success: false, message: 'Authentication error' });
     }
 };

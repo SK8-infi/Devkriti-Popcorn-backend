@@ -21,7 +21,50 @@ export const getNowPlayingMovies = async (req, res)=>{
 // API to add a new show to the database
 export const addShow = async (req, res) =>{
     try {
-        const {movieId, showsInput, showPrice, theatreId, roomId} = req.body
+        const {movieId, showsInput, normalPrice, vipPrice, theatreId, roomId, language} = req.body
+
+        // Validate theatre exists
+        const Theatre = (await import('../models/Theatre.js')).default;
+        const theatre = await Theatre.findById(theatreId);
+        if (!theatre) {
+            return res.json({ success: false, message: 'Theatre not found.' });
+        }
+
+        // Validate room exists in theatre
+        const roomExists = theatre.rooms && theatre.rooms.some(room => String(room._id) === String(roomId));
+        if (!roomExists) {
+            return res.json({ success: false, message: 'Room not found in theatre.' });
+        }
+
+        // Check for 3-hour duration conflicts with existing shows
+        const existingShows = await Show.find({ 
+            theatre: theatreId, 
+            room: roomId,
+            showDateTime: { $gte: new Date() }
+        }).populate('movie');
+
+        for (const showInput of showsInput) {
+            for (const time of showInput.time) {
+                const newShowStart = new Date(`${showInput.date}T${time}`);
+                const newShowEnd = new Date(newShowStart.getTime() + (3 * 60 * 60 * 1000)); // 3 hours later
+                
+                // Check for conflicts with existing shows
+                const conflict = existingShows.find(existingShow => {
+                    const existingStart = new Date(existingShow.showDateTime);
+                    const existingEnd = new Date(existingStart.getTime() + (3 * 60 * 60 * 1000)); // 3 hours later
+                    
+                    // Check for overlap
+                    return newShowStart < existingEnd && newShowEnd > existingStart;
+                });
+                
+                if (conflict) {
+                    return res.json({ 
+                        success: false, 
+                        message: `Time slot conflicts with existing show: ${conflict.movie?.title || 'Unknown Movie'} at ${conflict.showDateTime.toLocaleString()}` 
+                    });
+                }
+            }
+        }
 
         let movie = await Movie.findById(movieId)
 
@@ -60,7 +103,9 @@ export const addShow = async (req, res) =>{
                     movie: movieId,
                     theatre: theatreId,
                     showDateTime: new Date(dateTimeString),
-                    showPrice,
+                    normalPrice,
+                    vipPrice,
+                    language,
                     occupiedSeats: {},
                     room: roomId
                 })
@@ -118,7 +163,9 @@ export const getShow = async (req, res) =>{
                 theatre: show.theatre?._id ? String(show.theatre._id) : String(show.theatre),
                 theatreName: show.theatre?.name || '',
                 theatreCity: show.theatre?.city || '',
-                showPrice: show.showPrice // include showPrice for frontend tally
+                normalPrice: show.normalPrice, // include normalPrice for frontend tally
+                vipPrice: show.vipPrice, // include vipPrice for frontend tally
+                language: show.language // include language information
             })
         })
 
