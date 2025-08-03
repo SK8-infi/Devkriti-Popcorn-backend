@@ -4,10 +4,9 @@ const userSchema = new mongoose.Schema({
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     image: { type: String },
-    city: { type: String },
-    theatre: { type: String },
+    city: { type: String }, // Personal city preference for browsing
     googleId: { type: String, sparse: true },
-    role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    role: { type: String, enum: ['user', 'admin', 'owner'], default: 'user' },
     isVerified: { type: Boolean, default: false },
     favorites: [{ type: String }]
 }, { timestamps: true });

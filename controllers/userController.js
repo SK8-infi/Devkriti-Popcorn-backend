@@ -1,6 +1,7 @@
 import Booking from "../models/Booking.js";
 import Movie from "../models/Movie.js";
 import User from "../models/User.js";
+import Theatre from "../models/Theatre.js";
 
 // API Controller Function to Get User Bookings
 export const getUserBookings = async (req, res)=>{
@@ -99,48 +100,21 @@ export const updateUserCityPublic = async (req, res) => {
     } catch (error) {
         res.json({ success: false, message: error.message });
     }
-}
+};
 
+// API Controller Function to get user by ID
 export const getUserById = async (req, res) => {
     try {
         const { userId } = req.params;
-        
-        // Check if userId is a valid MongoDB ObjectId
-        const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(userId);
-        
-        let user = null;
-        
-        if (isValidObjectId) {
-            // Try to find user by MongoDB ObjectId
-            user = await User.findById(userId);
-        }
-        
-        // If not found by ObjectId or userId is not a valid ObjectId, try other fields
-        if (!user) {
-            user = await User.findOne({
-                $or: [
-                    { googleId: userId },
-                    { email: userId } // In case it's an email
-                ]
-            });
-        }
+        const user = await User.findById(userId).select('-__v');
         
         if (!user) {
-            // Return a placeholder user for old user IDs
-            return res.json({ 
-                success: true, 
-                user: {
-                    _id: userId,
-                    name: 'Admin User',
-                    email: 'admin@theatre.com',
-                    image: null
-                }
-            });
+            return res.status(404).json({ success: false, message: 'User not found' });
         }
         
         res.json({ success: true, user });
     } catch (error) {
-        console.error('getUserById error:', error);
+        console.error('Get user by ID error:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -154,6 +128,12 @@ export const promoteToAdmin = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Email is required' });
         }
 
+        // Check if current user is owner only
+        const currentUser = req.user;
+        if (currentUser.role !== 'owner') {
+            return res.status(403).json({ success: false, message: 'Only owners can promote users' });
+        }
+
         const user = await User.findOne({ email });
         
         if (!user) {
@@ -162,6 +142,10 @@ export const promoteToAdmin = async (req, res) => {
 
         if (user.role === 'admin') {
             return res.status(400).json({ success: false, message: 'User is already an admin' });
+        }
+
+        if (user.role === 'owner') {
+            return res.status(400).json({ success: false, message: 'Cannot promote an owner' });
         }
 
         user.role = 'admin';
@@ -183,13 +167,19 @@ export const promoteToAdmin = async (req, res) => {
     }
 };
 
-// API Controller Function to demote admin to user
+// API Controller Function to demote user from admin
 export const demoteFromAdmin = async (req, res) => {
     try {
         const { email } = req.body;
         
         if (!email) {
             return res.status(400).json({ success: false, message: 'Email is required' });
+        }
+
+        // Check if current user is owner only
+        const currentUser = req.user;
+        if (currentUser.role !== 'owner') {
+            return res.status(403).json({ success: false, message: 'Only owners can demote users' });
         }
 
         const user = await User.findOne({ email });
@@ -200,6 +190,11 @@ export const demoteFromAdmin = async (req, res) => {
 
         if (user.role !== 'admin') {
             return res.status(400).json({ success: false, message: 'User is not an admin' });
+        }
+
+        // Prevent demoting owners
+        if (user.role === 'owner') {
+            return res.status(400).json({ success: false, message: 'Cannot demote an owner' });
         }
 
         user.role = 'user';
@@ -221,35 +216,50 @@ export const demoteFromAdmin = async (req, res) => {
     }
 };
 
-// API Controller Function to update User Theatre and City
+// API Controller Function to update User Theatre and City (now works with Theatre model)
 export const updateUserTheatre = async (req, res) => {
     try {
         const userId = req.user._id;
-        const { theatre, city } = req.body;
+        const { theatre, city, address } = req.body;
         
         if (!theatre || !city) {
             return res.status(400).json({ success: false, message: 'Theatre name and city are required' });
         }
 
-        const user = await User.findByIdAndUpdate(
-            userId, 
-            { theatre, city }, 
-            { new: true }
-        );
-        
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'User not found' });
+        // Check if user is admin or owner
+        const user = await User.findById(userId);
+        if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
+            return res.status(403).json({ success: false, message: 'Only admins and owners can manage theatres' });
         }
 
+        // Check if theatre already exists for this admin
+        let theatreDoc = await Theatre.findOne({ admin: userId });
+        
+        if (theatreDoc) {
+            // Update existing theatre
+            theatreDoc.name = theatre;
+            theatreDoc.city = city;
+            theatreDoc.address = address || '';
+            await theatreDoc.save();
+        } else {
+            // Create new theatre
+            theatreDoc = await Theatre.create({
+                name: theatre,
+                city: city,
+                address: address || '',
+                admin: userId,
+                layout: Array(8).fill().map(() => Array(10).fill(1))
+            });
+        }
+        
         res.json({ 
             success: true, 
-            message: 'Theatre and city updated successfully',
-            user: {
-                _id: user._id,
-                name: user.name,
-                email: user.email,
-                theatre: user.theatre,
-                city: user.city
+            message: 'Theatre updated successfully',
+            theatre: {
+                name: theatreDoc.name,
+                city: theatreDoc.city,
+                address: theatreDoc.address,
+                admin: theatreDoc.admin
             }
         });
     } catch (error) {
@@ -258,8 +268,8 @@ export const updateUserTheatre = async (req, res) => {
     }
 };
 
-// Check if user email is in AD_EMAILS list
-export const checkAdAccess = async (req, res) => {
+// Check if user has owner role
+export const checkOwnerAccess = async (req, res) => {
     try {
         const userId = req.user._id;
         const user = await User.findById(userId);
@@ -268,24 +278,23 @@ export const checkAdAccess = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        const adEmails = process.env.AD_EMAILS ? process.env.AD_EMAILS.split(',') : [];
-        const hasAdAccess = adEmails.includes(user.email);
+        const hasOwnerAccess = user.role === 'owner';
 
         // Debug logging
-        console.log('🔍 AD Access Check Debug:');
+        console.log('🔍 Owner Access Check Debug:');
         console.log('  User ID:', userId);
         console.log('  User Email:', user.email);
-        console.log('  AD_EMAILS:', process.env.AD_EMAILS);
-        console.log('  Parsed AD Emails:', adEmails);
-        console.log('  Has AD Access:', hasAdAccess);
+        console.log('  User Role:', user.role);
+        console.log('  Has Owner Access:', hasOwnerAccess);
 
         res.json({ 
             success: true, 
-            hasAdAccess,
-            userEmail: user.email 
+            hasOwnerAccess,
+            userEmail: user.email,
+            userRole: user.role
         });
     } catch (error) {
-        console.error('Check AD access error:', error);
+        console.error('Check owner access error:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };

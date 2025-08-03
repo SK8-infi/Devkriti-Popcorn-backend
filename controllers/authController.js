@@ -51,16 +51,54 @@ export const testEndpoint = (req, res) => {
     res.json({ success: true, message: 'Server is working' });
 };
 
-// Check if user is admin
+// Debug endpoint to check auth status
+export const debugAuthStatus = (req, res) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    res.json({ 
+        success: true, 
+        hasAuthHeader: !!authHeader,
+        hasToken: !!token,
+        authHeader: authHeader ? 'present' : 'missing',
+        tokenLength: token ? token.length : 0
+    });
+};
+
+// Check if user is admin or owner
 export const checkAdminStatus = async (req, res) => {
     try {
         const user = await User.findById(req.user._id);
         res.json({ 
             success: true, 
-            isAdmin: user.role === 'admin' 
+            isAdmin: user.role === 'admin',
+            isOwner: user.role === 'owner'
         });
     } catch (error) {
         console.error('Check admin status error:', error);
         res.status(500).json({ success: false, message: 'Error checking admin status' });
+    }
+};
+
+// Debug endpoint to check user data
+export const debugUserData = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        res.json({ 
+            success: true, 
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                image: user.image,
+                googleId: user.googleId,
+                role: user.role,
+                city: user.city, // Personal city preference
+                createdAt: user.createdAt
+            }
+        });
+    } catch (error) {
+        console.error('Debug user data error:', error);
+        res.status(500).json({ success: false, message: 'Error fetching user data' });
     }
 }; 
