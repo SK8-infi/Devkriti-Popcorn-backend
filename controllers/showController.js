@@ -154,18 +154,24 @@ export const getShow = async (req, res) =>{
             if(!dateTime[date]){
                 dateTime[date] = []
             }
-            // Debug log for show and theatre
-            console.log('Show:', show);
-            console.log('Show theatre:', show.theatre);
+            
+            // Get room information for format filtering
+            let roomInfo = null;
+            if (show.theatre && show.theatre.rooms) {
+                roomInfo = show.theatre.rooms.find(room => room._id.toString() === show.room);
+            }
+            
             dateTime[date].push({ 
                 time: show.showDateTime, 
                 showId: show._id,
                 theatre: show.theatre?._id ? String(show.theatre._id) : String(show.theatre),
                 theatreName: show.theatre?.name || '',
                 theatreCity: show.theatre?.city || '',
-                normalPrice: show.normalPrice, // include normalPrice for frontend tally
-                vipPrice: show.vipPrice, // include vipPrice for frontend tally
-                language: show.language // include language information
+                normalPrice: show.normalPrice,
+                vipPrice: show.vipPrice,
+                language: show.language,
+                format: roomInfo?.type || 'Normal', // Use room type as format
+                roomName: roomInfo?.name || 'Unknown Room'
             })
         })
 
