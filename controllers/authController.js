@@ -102,3 +102,22 @@ export const debugUserData = async (req, res) => {
         res.status(500).json({ success: false, message: 'Error fetching user data' });
     }
 }; 
+
+// Debug endpoint to check Google OAuth configuration
+export const debugGoogleOAuthConfig = (req, res) => {
+    const config = {
+        hasClientID: !!process.env.GOOGLE_CLIENT_ID,
+        hasClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
+        backendURL: process.env.BACKEND_URL || 'http://localhost:3000',
+        frontendURL: process.env.FRONTEND_URL || 'http://localhost:5173',
+        callbackURL: `${process.env.BACKEND_URL || 'http://localhost:3000'}/api/auth/google/callback`,
+        nodeEnv: process.env.NODE_ENV,
+        timestamp: new Date().toISOString()
+    };
+    
+    res.json({ 
+        success: true, 
+        message: 'Google OAuth Configuration Debug',
+        config
+    });
+}; 
