@@ -9,7 +9,8 @@ import {
     checkAdminStatus,
     testEndpoint,
     debugUserData,
-    debugAuthStatus
+    debugAuthStatus,
+    debugGoogleOAuthConfig
 } from '../controllers/authController.js';
 
 const authRouter = express.Router();
@@ -19,6 +20,9 @@ authRouter.get('/test', testEndpoint);
 
 // Debug endpoint (no auth required)
 authRouter.get('/debug-auth', debugAuthStatus);
+
+// Google OAuth debug endpoint (no auth required)
+authRouter.get('/debug-google-config', debugGoogleOAuthConfig);
 
 // Google OAuth routes
 authRouter.get('/google', googleAuth);
