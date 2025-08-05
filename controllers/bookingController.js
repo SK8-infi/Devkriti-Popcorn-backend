@@ -199,6 +199,12 @@ export const createBooking = async (req, res)=>{
 
         console.log('🔍 Booking: Final amount:', finalAmount);
 
+        // Validate minimum amount for Stripe
+        if (finalAmount < 1) {
+            console.log('❌ Booking: Amount too low for Stripe processing');
+            return res.json({success: false, message: "Amount must be at least ₹1.00 for payment processing."});
+        }
+
         // Create a new booking
         const booking = await Booking.create({
             user: userId,
@@ -222,13 +228,27 @@ export const createBooking = async (req, res)=>{
          const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY)
 
          // Creating line items to for Stripe
+         // Convert to paise (smallest unit of INR) - 1 INR = 100 paise
+         const unitAmountInPaise = Math.floor(finalAmount * 100);
+         
+         // Ensure minimum amount (₹1 = 100 paise)
+         const minimumAmount = 100; // ₹1.00 in paise
+         const finalUnitAmount = Math.max(unitAmountInPaise, minimumAmount);
+         
+         console.log('🔍 Booking: Amount conversion:', {
+             originalAmount: finalAmount,
+             unitAmountInPaise: unitAmountInPaise,
+             finalUnitAmount: finalUnitAmount,
+             amountInRupees: finalUnitAmount / 100
+         });
+         
          const line_items = [{
             price_data: {
-                currency: 'usd',
+                currency: 'inr',
                 product_data:{
                     name: showData.movie.title
                 },
-                unit_amount: Math.floor(finalAmount) * 100
+                unit_amount: finalUnitAmount
             },
             quantity: 1
          }]
@@ -509,6 +529,12 @@ export const retryPayment = async (req, res) => {
             return res.json({ success: false, message: 'Show not found' });
         }
 
+        // Validate minimum amount for Stripe
+        if (booking.amount < 1) {
+            console.log('❌ Booking: Amount too low for Stripe processing');
+            return res.json({ success: false, message: "Amount must be at least ₹1.00 for payment processing." });
+        }
+
         // Check if payment session is expired
         const now = new Date();
         const bookingTime = new Date(booking.createdAt);
@@ -526,13 +552,27 @@ export const retryPayment = async (req, res) => {
         // Create new Stripe session
         const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
 
+        // Convert to paise (smallest unit of INR) - 1 INR = 100 paise
+        const unitAmountInPaise = Math.floor(booking.amount * 100);
+        
+        // Ensure minimum amount (₹1 = 100 paise)
+        const minimumAmount = 100; // ₹1.00 in paise
+        const finalUnitAmount = Math.max(unitAmountInPaise, minimumAmount);
+        
+        console.log('🔍 Booking: Retry payment amount conversion:', {
+            originalAmount: booking.amount,
+            unitAmountInPaise: unitAmountInPaise,
+            finalUnitAmount: finalUnitAmount,
+            amountInRupees: finalUnitAmount / 100
+        });
+        
         const line_items = [{
             price_data: {
-                currency: 'usd',
+                currency: 'inr',
                 product_data: {
                     name: showData.movie.title
                 },
-                unit_amount: Math.floor(booking.amount) * 100
+                unit_amount: finalUnitAmount
             },
             quantity: 1
         }];
