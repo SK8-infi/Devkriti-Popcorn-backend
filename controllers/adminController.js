@@ -36,14 +36,15 @@ export const getDashboardData = async (req, res) =>{
         console.log('Booking amounts:', bookings.map(b => b.amount));
         
         // Get active shows for this theatre only
+        console.log('🔍 getDashboardData: Searching for active shows with theatre ID:', theatre._id);
         const activeShows = await Show.find({
             theatre: theatre._id,
             showDateTime: { $gte: new Date() }
         }).populate('movie');
 
-        console.log('🔍 Admin Dashboard: Theatre ID:', theatre._id);
-        console.log('🔍 Admin Dashboard: Active shows found:', activeShows.length);
-        console.log('🔍 Admin Dashboard: Active shows data:', activeShows);
+        console.log('🔍 getDashboardData: Theatre ID:', theatre._id);
+        console.log('🔍 getDashboardData: Active shows found:', activeShows.length);
+        console.log('🔍 getDashboardData: Active shows data:', activeShows);
 
         // Count users (this could be filtered by theatre city if needed)
         const totalUser = await User.countDocuments();
@@ -69,22 +70,29 @@ export const getDashboardData = async (req, res) =>{
 export const getAllShows = async (req, res) =>{
     try {
         const userId = req.user._id;
+        console.log('🔍 getAllShows: User ID:', userId);
         
         // Get the admin's theatre
         const theatre = await Theatre.findOne({ admin: userId });
+        console.log('🔍 getAllShows: Theatre found:', theatre);
         if (!theatre) {
+            console.log('❌ getAllShows: Theatre not found for admin');
             return res.status(404).json({ success: false, message: 'Theatre not found for this admin' });
         }
         
         // Get shows for this theatre only
+        console.log('🔍 getAllShows: Searching for shows with theatre ID:', theatre._id);
         const shows = await Show.find({
             theatre: theatre._id,
             showDateTime: { $gte: new Date() }
         }).populate('movie').sort({ showDateTime: 1 });
         
+        console.log('🔍 getAllShows: Shows found:', shows.length);
+        console.log('🔍 getAllShows: Shows data:', shows);
+        
         res.json({success: true, shows})
     } catch (error) {
-        console.error(error);
+        console.error('❌ getAllShows error:', error);
         res.json({success: false, message: error.message})
     }
 }
