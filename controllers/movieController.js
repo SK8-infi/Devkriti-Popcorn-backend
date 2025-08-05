@@ -154,37 +154,42 @@ export async function fetchAndCacheLatestMovies() {
         // Ignore errors, leave casts empty
       }
 
-      // Fetch videos/trailers
+      // Fetch videos/trailers - only the official trailer
       let trailers = [];
       try {
         const videosRes = await fetch(`${TMDB_BASE_URL}/movie/${movie.id}/videos?language=en-US`, { headers: { Authorization: `Bearer ${TMDB_API_KEY}` } });
         if (videosRes.ok) {
           const videos = await videosRes.json();
-          // Filter for official YouTube trailers only
-          trailers = (videos.results || [])
+          // Filter for official YouTube trailers only and take only the first one
+          const officialTrailers = (videos.results || [])
             .filter(video => 
               video.site === 'YouTube' && 
               video.type === 'Trailer' &&
               video.official === true &&
               video.key
             )
-            .map(video => ({
-              id: video.id,
-              key: video.key,
-              name: video.name,
-              type: video.type,
-              site: video.site,
-              size: video.size,
-              official: video.official,
-              published_at: video.published_at,
-              youtube_url: `https://www.youtube.com/watch?v=${video.key}`,
-              youtube_embed_url: `https://www.youtube.com/embed/${video.key}`,
-              thumbnail_url: `https://img.youtube.com/vi/${video.key}/maxresdefault.jpg`
-            }))
             .sort((a, b) => {
-              // Sort by published date (newest first) since all are official
+              // Sort by published date (newest first) to get the latest official trailer
               return new Date(b.published_at) - new Date(a.published_at);
             });
+          
+          // Take only the first (latest) official trailer
+          if (officialTrailers.length > 0) {
+            const trailer = officialTrailers[0];
+            trailers = [{
+              id: trailer.id,
+              key: trailer.key,
+              name: trailer.name,
+              type: trailer.type,
+              site: trailer.site,
+              size: trailer.size,
+              official: trailer.official,
+              published_at: trailer.published_at,
+              youtube_url: `https://www.youtube.com/watch?v=${trailer.key}`,
+              youtube_embed_url: `https://www.youtube.com/embed/${trailer.key}`,
+              thumbnail_url: `https://img.youtube.com/vi/${trailer.key}/maxresdefault.jpg`
+            }];
+          }
         }
       } catch (e) {
         console.error(`❌ Error fetching videos for movie ${movie.id}:`, e);
