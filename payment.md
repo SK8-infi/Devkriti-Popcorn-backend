@@ -1,6 +1,6 @@
 Great question! Here are the **Stripe test cards** you can use for testing your payment system:
 
-## **💳 Stripe Test Card Numbers:**
+## **Stripe Test Card Numbers:**
 
 ### **✅ Successful Payments:**
 
@@ -22,7 +22,7 @@ Great question! Here are the **Stripe test cards** you can use for testing your 
 | **Stolen card** | `4000000000009979` | Any future date | Any 3 digits | Stolen card |
 | **Expired card** | `4000000000000069` | Any future date | Any 3 digits | Expired card |
 
-### **🔄 3D Secure Testing:**
+### **3D Secure Testing:**
 
 | Card Type | Number | Expiry | CVC | Description |
 |-----------|--------|--------|-----|-------------|
@@ -56,7 +56,7 @@ CVC: 123
 ```
 - **Result**: Payment declined with generic error
 
-## **📱 Testing on Your Application:**
+## **Testing on Your Application:**
 
 ### **Step 1: Start Your Backend**
 ```powershell
@@ -76,12 +76,12 @@ npm start
 - **Decline**: Use `4000000000000002`
 - **3D Secure**: Use `4000002500003155`
 
-## **🔧 Important Testing Notes:**
+## **Important Testing Notes:**
 
 ### **Environment:**
 - ✅ **Test mode**: Use test cards only in test mode
 - ✅ **Live mode**: Real cards only in live mode
-- ⚠️ **Never use test cards in production**
+- **Never use test cards in production**
 
 ### **Test Data:**
 - **Email**: Any valid email format
@@ -94,7 +94,7 @@ npm start
 - **Test SMS**: `123456`
 - **Test Password**: `password`
 
-## **🎯 Testing Your Specific Implementation:**
+## **Testing Your Specific Implementation:**
 
 Since you have the booking system set up, you can test:
 
@@ -107,15 +107,15 @@ Since you have the booking system set up, you can test:
 ## **📊 Expected Results:**
 
 ### **Successful Payment:**
-- ✅ Booking created in database
-- ✅ Seats marked as occupied
-- ✅ Redirect to success URL
-- ✅ Payment recorded in Stripe
+- Booking created in database
+- Seats marked as occupied
+- Redirect to success URL
+- Payment recorded in Stripe
 
 ### **Failed Payment:**
-- ❌ Booking not created
-- ❌ Seats remain available
-- ❌ Redirect to cancel URL
-- ❌ Error message displayed
+- Booking not created
+- Seats remain available
+- Redirect to cancel URL
+- Error message displayed
 
 Try these test cards with your booking system to ensure everything works correctly!

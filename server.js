@@ -84,4 +84,4 @@ app.use('/api/user', userRouter);
 app.use('/api/movies', movieRouter);
 app.use('/api/cron', cronRouter);
 
-app.listen(port, ()=> console.log(`Server listening at http://localhost:${port}`)); 
+app.listen(port, ()=> {}); 

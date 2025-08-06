@@ -5,25 +5,17 @@ const cronIntervals = new Map();
 
 // Start all cron jobs
 export const startCronJobs = () => {
-    console.log('Starting cron jobs...');
-    
     // Start show reminder cron job (every 8 hours)
     startShowReminderCron();
-    
-    console.log('All cron jobs started successfully');
 };
 
 // Stop all cron jobs
 export const stopCronJobs = () => {
-    console.log('Stopping all cron jobs...');
-    
     cronIntervals.forEach((intervalId, jobName) => {
         clearInterval(intervalId);
-        console.log(`Stopped cron job: ${jobName}`);
     });
     
     cronIntervals.clear();
-    console.log('All cron jobs stopped');
 };
 
 // Show reminder cron job (runs every 8 hours)
@@ -39,7 +31,6 @@ const startShowReminderCron = () => {
     // Set up recurring job
     const intervalId = setInterval(async () => {
         try {
-            console.log('Running scheduled show reminders...');
             await sendShowReminders();
         } catch (error) {
             console.error('Error in scheduled show reminder:', error);
@@ -47,7 +38,6 @@ const startShowReminderCron = () => {
     }, interval);
     
     cronIntervals.set(jobName, intervalId);
-    console.log(`Started cron job: ${jobName} (every 8 hours)`);
 };
 
 // Get status of all cron jobs
@@ -66,9 +56,7 @@ export const getCronJobStatus = () => {
 // Manual trigger for show reminders (for testing)
 export const triggerShowReminders = async () => {
     try {
-        console.log('Manually triggering show reminders...');
         const result = await sendShowReminders();
-        console.log('Manual show reminders completed:', result);
         return result;
     } catch (error) {
         console.error('Error in manual show reminder trigger:', error);

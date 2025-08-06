@@ -280,12 +280,7 @@ export const checkOwnerAccess = async (req, res) => {
 
         const hasOwnerAccess = user.role === 'owner';
 
-        // Debug logging
-        console.log('🔍 Owner Access Check Debug:');
-        console.log('  User ID:', userId);
-        console.log('  User Email:', user.email);
-        console.log('  User Role:', user.role);
-        console.log('  Has Owner Access:', hasOwnerAccess);
+
 
         res.json({ 
             success: true, 

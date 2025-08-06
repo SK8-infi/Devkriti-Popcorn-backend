@@ -13,7 +13,7 @@ const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/original';
 
-console.log('📁 Images directory:', IMAGES_DIR);
+
 let MOVIE_DATA = [];
 
 async function downloadImageIfNeeded(imagePath) {
@@ -35,7 +35,7 @@ async function downloadBackdropIfNeeded(backdropPath) {
   const localPath = path.join(IMAGES_DIR, filename);
   const exists = await fs.pathExists(localPath);
   if (!exists) {
-    console.log(`📥 Downloading backdrop: ${filename}`);
+
     const url = `https://image.tmdb.org/t/p/w1280${backdropPath}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to download backdrop image');
@@ -49,15 +49,11 @@ async function downloadBackdropIfNeeded(backdropPath) {
       await new Promise(resolve => setTimeout(resolve, 100));
       tries++;
     }
-    console.log(`✅ Downloaded backdrop: ${filename}`);
-  } else {
-    console.log(`📁 Backdrop already exists: ${filename}`);
-  }
+
   return filename;
 }
 
 export async function fetchLatestMovies() {
-  console.log('📡 Fetching latest movies from TMDB...');
   const url = 'https://api.themoviedb.org/3/movie/now_playing?language=en-US&page=1';
   const headers = {
     'Authorization': `Bearer ${TMDB_BEARER_TOKEN}`,
@@ -75,14 +71,14 @@ export async function fetchLatestMovies() {
         try {
           localFilename = await downloadImageIfNeeded(movie.poster_path);
         } catch (e) {
-          console.error('❌ Error downloading image:', e);
+          console.error('Error downloading image:', e);
         }
       }
       if (movie.backdrop_path) {
         try {
           localBackdropFilename = await downloadBackdropIfNeeded(movie.backdrop_path);
         } catch (e) {
-          console.error('❌ Error downloading backdrop:', e);
+          console.error('Error downloading backdrop:', e);
         }
       }
       // Fetch movie details for runtime and genres
@@ -95,10 +91,10 @@ export async function fetchLatestMovies() {
           runtime = details.runtime;
           genres = details.genres || [];
         } else {
-          console.error(`❌ Failed to fetch details for movie ${movie.id}`);
+          console.error(`Failed to fetch details for movie ${movie.id}`);
         }
       } catch (e) {
-        console.error(`❌ Error fetching details for movie ${movie.id}:`, e);
+                  console.error(`Error fetching details for movie ${movie.id}:`, e);
       }
       return {
         id: movie.id,
@@ -111,9 +107,9 @@ export async function fetchLatestMovies() {
         genres,
       };
     }));
-    console.log('✅ Updated movie cache.');
+
   } catch (e) {
-    console.error('❌ Error fetching TMDB data:', e);
+            console.error('Error fetching TMDB data:', e);
   }
 }
 
@@ -192,7 +188,7 @@ export async function fetchAndCacheLatestMovies() {
           }
         }
       } catch (e) {
-        console.error(`❌ Error fetching videos for movie ${movie.id}:`, e);
+        console.error(`Error fetching videos for movie ${movie.id}:`, e);
       }
 
       // Fetch movie logos
@@ -224,7 +220,7 @@ export async function fetchAndCacheLatestMovies() {
             .slice(0, 1); // Take only the best logo
         }
       } catch (e) {
-        console.error(`❌ Error fetching logos for movie ${movie.id}:`, e);
+        console.error(`Error fetching logos for movie ${movie.id}:`, e);
       }
 
       let posterFilename = null;
@@ -251,9 +247,9 @@ export async function fetchAndCacheLatestMovies() {
       }
     }
     await fs.writeJson(MOVIES_JSON_PATH, { movies: uniqueProcessed }, { spaces: 2 });
-    console.log('✅ Cached latest movies to movies_latest.json');
+
   } catch (e) {
-    console.error('❌ Error caching latest movies:', e);
+            console.error('Error caching latest movies:', e);
   }
 }
 
@@ -261,8 +257,7 @@ export async function getMovieById(req, res) {
   try {
     const { id } = req.params;
     const data = await fs.readJson(MOVIES_JSON_PATH);
-    console.log('Looking for movie ID:', id);
-    console.log('All IDs:', data.movies.map(m => m.id));
+
     const movie = data.movies.find(m => String(m.id) === String(id));
     if (!movie) return res.status(404).json({ error: 'Movie not found' });
     res.json({ movie });
@@ -288,7 +283,7 @@ export function getAllMovies(req, res) {
   fs.readJson(MOVIES_JSON_PATH)
     .then(data => res.json({ success: true, movies: data.movies || [] }))
     .catch(err => {
-      console.error('❌ Error reading movies cache:', err);
+              console.error('Error reading movies cache:', err);
       res.status(500).json({ success: false, error: 'Failed to read movies cache' });
     });
 } 

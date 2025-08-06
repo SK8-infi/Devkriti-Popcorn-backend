@@ -21,7 +21,7 @@ export const sendBookingConfirmationEmail = async (bookingId) => {
         const emailBody = `
             <div style="font-family: Arial, sans-serif; line-height: 1.5; padding: 20px; background-color: #f5f5f5;">
                 <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                    <h2 style="color: #F84565; text-align: center;">🎬 Booking Confirmed!</h2>
+                    <h2 style="color: #F84565; text-align: center;">Booking Confirmed!</h2>
                     <h3>Hi ${booking.user.name},</h3>
                     <p>Your booking for <strong style="color: #F84565;">"${booking.show.movie.title}"</strong> is confirmed!</p>
                     
@@ -42,11 +42,11 @@ export const sendBookingConfirmationEmail = async (bookingId) => {
 
         await sendEmail({
             to: booking.user.email,
-            subject: `🎬 Booking Confirmed: "${booking.show.movie.title}"`,
+            subject: `Booking Confirmed: "${booking.show.movie.title}"`,
             body: emailBody
         });
 
-        console.log(`Booking confirmation email sent to: ${booking.user.email}`);
+
     } catch (error) {
         console.error('Error sending booking confirmation email:', error);
     }
@@ -55,7 +55,7 @@ export const sendBookingConfirmationEmail = async (bookingId) => {
 // Send show reminder emails (called by cron job)
 export const sendShowReminders = async () => {
     try {
-        console.log('Checking for shows to send reminders...');
+
         
         const now = new Date();
         const in8Hours = new Date(now.getTime() + 8 * 60 * 60 * 1000);
@@ -82,7 +82,7 @@ export const sendShowReminders = async () => {
                     const emailBody = `
                         <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5;">
                             <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                                <h2 style="color: #F84565; text-align: center;">⏰ Show Reminder</h2>
+                                <h2 style="color: #F84565; text-align: center;">Show Reminder</h2>
                                 <h3>Hello ${user.name},</h3>
                                 <p>This is a quick reminder that your movie:</p>
                                 <h3 style="color: #F84565; text-align: center;">"${show.movie.title}"</h3>
@@ -100,7 +100,7 @@ export const sendShowReminders = async () => {
 
                     await sendEmail({
                         to: user.email,
-                        subject: `⏰ Reminder: Your movie "${show.movie.title}" starts soon!`,
+                        subject: `Reminder: Your movie "${show.movie.title}" starts soon!`,
                         body: emailBody
                     });
 
@@ -112,7 +112,7 @@ export const sendShowReminders = async () => {
             }
         }
 
-        console.log(`Show reminders: ${remindersSent} sent, ${remindersFailed} failed`);
+
         return { sent: remindersSent, failed: remindersFailed };
     } catch (error) {
         console.error('Error sending show reminders:', error);
@@ -123,7 +123,7 @@ export const sendShowReminders = async () => {
 // Send new show notifications to all users
 export const sendNewShowNotifications = async (movieTitle) => {
     try {
-        console.log(`Sending new show notifications for: ${movieTitle}`);
+
         
         const users = await User.find({});
         let notificationsSent = 0;
@@ -134,7 +134,7 @@ export const sendNewShowNotifications = async (movieTitle) => {
                 const emailBody = `
                     <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5;">
                         <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                            <h2 style="color: #F84565; text-align: center;">🎬 New Show Added!</h2>
+                            <h2 style="color: #F84565; text-align: center;">New Show Added!</h2>
                             <h3>Hi ${user.name},</h3>
                             <p>We've just added a new show to our theater:</p>
                             <h3 style="color: #F84565; text-align: center;">"${movieTitle}"</h3>
@@ -153,7 +153,7 @@ export const sendNewShowNotifications = async (movieTitle) => {
 
                 await sendEmail({
                     to: user.email,
-                    subject: `🎬 New Show Added: ${movieTitle}`,
+                    subject: `New Show Added: ${movieTitle}`,
                     body: emailBody
                 });
 
@@ -164,7 +164,7 @@ export const sendNewShowNotifications = async (movieTitle) => {
             }
         }
 
-        console.log(`New show notifications: ${notificationsSent} sent, ${notificationsFailed} failed`);
+
         return { sent: notificationsSent, failed: notificationsFailed };
     } catch (error) {
         console.error('Error sending new show notifications:', error);

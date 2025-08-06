@@ -132,20 +132,20 @@ The frontend will run on `http://localhost:5173`
 Make sure you have all these environment variables set:
 
 Backend (`.env`):
-- ✅ `MONGO_URI`
-- ✅ `JWT_SECRET`
-- ✅ `GOOGLE_CLIENT_ID`
-- ✅ `GOOGLE_CLIENT_SECRET`
-- ✅ `EMAIL_USER`
-- ✅ `EMAIL_APP_PASSWORD`
-- ✅ `STRIPE_SECRET_KEY`
-- ✅ `STRIPE_WEBHOOK_SECRET`
-- ✅ `TMDB_API_KEY`
-- ✅ `BACKEND_URL`
-- ✅ `FRONTEND_URL`
+- `MONGO_URI`
+- `JWT_SECRET`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `EMAIL_USER`
+- `EMAIL_APP_PASSWORD`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `TMDB_API_KEY`
+- `BACKEND_URL`
+- `FRONTEND_URL`
 
 Frontend (`.env`):
-- ✅ `VITE_API_URL`
+- `VITE_API_URL`
 
 ## Production Deployment
 

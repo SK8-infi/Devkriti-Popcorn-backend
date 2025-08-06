@@ -30,27 +30,16 @@ export const getDashboardData = async (req, res) =>{
             isPaid: true
         });
         
-        console.log('Theatre ID:', theatre._id);
-        console.log('Show IDs:', showIds);
-        console.log('Bookings found:', bookings.length);
-        console.log('Booking amounts:', bookings.map(b => b.amount));
-        
         // Get active shows for this theatre only
-        console.log('🔍 getDashboardData: Searching for active shows with theatre ID:', theatre._id);
         const activeShows = await Show.find({
             theatre: theatre._id,
             showDateTime: { $gte: new Date() }
         }).populate('movie');
 
-        console.log('🔍 getDashboardData: Theatre ID:', theatre._id);
-        console.log('🔍 getDashboardData: Active shows found:', activeShows.length);
-        console.log('🔍 getDashboardData: Active shows data:', activeShows);
-
         // Count users (this could be filtered by theatre city if needed)
         const totalUser = await User.countDocuments();
 
         const totalRevenue = bookings.reduce((acc, booking) => acc + (booking.amount || 0), 0);
-        console.log('Total revenue calculated:', totalRevenue);
 
         const dashboardData = {
             totalBookings: bookings.length,
@@ -70,29 +59,22 @@ export const getDashboardData = async (req, res) =>{
 export const getAllShows = async (req, res) =>{
     try {
         const userId = req.user._id;
-        console.log('🔍 getAllShows: User ID:', userId);
         
         // Get the admin's theatre
         const theatre = await Theatre.findOne({ admin: userId });
-        console.log('🔍 getAllShows: Theatre found:', theatre);
         if (!theatre) {
-            console.log('❌ getAllShows: Theatre not found for admin');
             return res.status(404).json({ success: false, message: 'Theatre not found for this admin' });
         }
         
         // Get shows for this theatre only
-        console.log('🔍 getAllShows: Searching for shows with theatre ID:', theatre._id);
         const shows = await Show.find({
             theatre: theatre._id,
             showDateTime: { $gte: new Date() }
         }).populate('movie').sort({ showDateTime: 1 });
         
-        console.log('🔍 getAllShows: Shows found:', shows.length);
-        console.log('🔍 getAllShows: Shows data:', shows);
-        
         res.json({success: true, shows})
     } catch (error) {
-        console.error('❌ getAllShows error:', error);
+        console.error('getAllShows error:', error);
         res.json({success: false, message: error.message})
     }
 }
@@ -133,41 +115,31 @@ export const setTheatreName = async (req, res) => {
         const { theatre, city, address } = req.body;
         const allowedCities = ["Delhi", "Mumbai", "Gwalior", "Indore", "Pune", "Chennai"];
         
-        console.log('🔧 setTheatreName called:', { userId, theatre, city, address });
-        
         // Validate user exists and has admin role
         const user = await User.findById(userId);
         if (!user) {
-            console.log('❌ User not found:', userId);
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
         if (user.role !== 'admin') {
-            console.log('❌ User is not admin:', user.role);
             return res.status(403).json({ success: false, message: 'Only admins can create theatres.' });
         }
         
         if (!theatre || typeof theatre !== 'string' || !theatre.trim()) {
-            console.log('❌ Invalid theatre name:', theatre);
             return res.json({ success: false, message: 'Theatre name is required.' });
         }
         if (!city || typeof city !== 'string' || !allowedCities.includes(city)) {
-            console.log('❌ Invalid city:', city);
             return res.json({ success: false, message: 'Valid city is required.' });
         }
-        
-        console.log('✅ Validation passed, processing theatre setup...');
         
         // Check if a theatre already exists for this admin
         let theatreDoc = await Theatre.findOne({ admin: userId });
         if (theatreDoc) {
-            console.log('🔄 Updating existing theatre:', theatreDoc._id);
             // Update existing theatre
             theatreDoc.name = theatre.trim();
             theatreDoc.city = city;
             theatreDoc.address = address || '';
             await theatreDoc.save();
         } else {
-            console.log('🆕 Creating new theatre for admin:', userId);
             // Create new theatre for this admin using Google ID reference
             theatreDoc = await Theatre.create({
                 name: theatre.trim(),
@@ -177,8 +149,6 @@ export const setTheatreName = async (req, res) => {
                 layout: Array(8).fill().map(() => Array(10).fill(1))
             });
         }
-        
-        console.log('✅ Theatre setup completed:', { theatreId: theatreDoc._id, name: theatreDoc.name });
         
         res.json({ 
             success: true, 
@@ -190,7 +160,7 @@ export const setTheatreName = async (req, res) => {
             adminId: theatreDoc.admin // Return the admin ID for verification
         });
     } catch (error) {
-        console.error('❌ Set theatre name error:', error);
+        console.error('Set theatre name error:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };

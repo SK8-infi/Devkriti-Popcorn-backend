@@ -16,7 +16,6 @@ const checkSeatsAvailability = async (showId, selectedSeats)=>{
 
         return !isAnySeatTaken;
     } catch (error) {
-        console.log(error.message);
         return false;
     }
 }
@@ -33,10 +32,9 @@ const releaseSeats = async (showId, selectedSeats) => {
             });
             showData.markModified('occupiedSeats');
             await showData.save();
-            console.log('✅ Booking: Seats released for show:', showId);
         }
     } catch (error) {
-        console.log('❌ Booking: Error releasing seats:', error.message);
+        // Error releasing seats
     }
 }
 
@@ -58,32 +56,22 @@ export const handlePaymentFailure = async (req, res) => {
         booking.status = 'payment_failed';
         await booking.save();
 
-        console.log('✅ Booking: Payment failure handled for booking:', bookingId);
         res.json({ success: true, message: 'Seats released successfully' });
 
     } catch (error) {
-        console.log('❌ Booking: Error handling payment failure:', error.message);
         res.json({ success: false, message: error.message });
     }
 }
 
 // Stripe webhook handler
 export const handleStripeWebhook = async (req, res) => {
-    console.log('🔍 Booking: Webhook received:', req.headers['stripe-signature'] ? 'Signature present' : 'No signature');
-    console.log('🔍 Booking: Webhook body length:', req.body?.length || 'No body');
-    console.log('🔍 Booking: Webhook headers:', Object.keys(req.headers));
-    
     const sig = req.headers['stripe-signature'];
     let event;
 
     try {
         const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
         event = stripeInstance.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-        console.log('✅ Booking: Webhook signature verified, event type:', event.type);
-        console.log('🔍 Booking: Event data:', JSON.stringify(event.data, null, 2));
     } catch (err) {
-        console.log('❌ Booking: Webhook signature verification failed:', err.message);
-        console.log('🔍 Booking: Webhook secret length:', process.env.STRIPE_WEBHOOK_SECRET?.length || 'No secret');
         return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
@@ -91,24 +79,15 @@ export const handleStripeWebhook = async (req, res) => {
     switch (event.type) {
         case 'checkout.session.completed':
             const session = event.data.object;
-            console.log('✅ Booking: Payment successful for session:', session.id);
-            console.log('🔍 Booking: Session metadata:', session.metadata);
-            console.log('🔍 Booking: Session payment status:', session.payment_status);
-            console.log('🔍 Booking: Session status:', session.status);
             
             // Update booking status to paid
             if (session.metadata?.bookingId) {
-                console.log('🔍 Booking: Found bookingId in metadata:', session.metadata.bookingId);
-                const result = await updateBookingToPaid(session.metadata.bookingId);
-                console.log('🔍 Booking: Update result:', result);
-            } else {
-                console.log('❌ Booking: No bookingId found in session metadata');
+                await updateBookingToPaid(session.metadata.bookingId);
             }
             break;
             
         case 'checkout.session.expired':
             const expiredSession = event.data.object;
-            console.log('⚠️ Booking: Session expired:', expiredSession.id);
             // Release seats if session expired
             if (expiredSession.metadata?.bookingId) {
                 await releaseSeatsFromBooking(expiredSession.metadata.bookingId);
@@ -117,7 +96,6 @@ export const handleStripeWebhook = async (req, res) => {
             
         case 'payment_intent.payment_failed':
             const failedPayment = event.data.object;
-            console.log('❌ Booking: Payment failed:', failedPayment.id);
             // Release seats if payment failed
             if (failedPayment.metadata?.bookingId) {
                 await releaseSeatsFromBooking(failedPayment.metadata.bookingId);
@@ -125,7 +103,7 @@ export const handleStripeWebhook = async (req, res) => {
             break;
             
         default:
-            console.log(`Unhandled event type: ${event.type}`);
+            // Unhandled event type
     }
 
     res.json({ received: true });
@@ -140,14 +118,11 @@ const updateBookingToPaid = async (bookingId) => {
             booking.status = 'confirmed';
             booking.paymentDate = new Date();
             await booking.save();
-            console.log('✅ Booking: Payment confirmed for booking:', bookingId);
             return true; // Indicate success
         } else {
-            console.log('❌ Booking: Booking not found for payment confirmation:', bookingId);
             return false; // Indicate failure
         }
     } catch (error) {
-        console.log('❌ Booking: Error updating booking to paid:', error.message);
         return false; // Indicate failure
     }
 }
@@ -160,10 +135,9 @@ const releaseSeatsFromBooking = async (bookingId) => {
             await releaseSeats(booking.show, booking.bookedSeats);
             booking.status = 'payment_failed';
             await booking.save();
-            console.log('✅ Booking: Seats released from expired/failed booking:', bookingId);
         }
     } catch (error) {
-        console.log('❌ Booking: Error releasing seats from booking:', error.message);
+        // Error releasing seats
     }
 }
 
@@ -173,22 +147,17 @@ export const createBooking = async (req, res)=>{
         const {showId, selectedSeats, totalAmount} = req.body;
         const { origin } = req.headers;
 
-        console.log('🔍 Booking: Creating booking for user:', userId);
-        console.log('🔍 Booking: Show ID:', showId);
-        console.log('🔍 Booking: Selected seats:', selectedSeats);
-        console.log('🔍 Booking: Total amount:', totalAmount);
+
 
         // Check if the seat is available for the selected show
         const isAvailable = await checkSeatsAvailability(showId, selectedSeats)
 
         if(!isAvailable){
-            console.log('❌ Booking: Seats not available');
             return res.json({success: false, message: "Selected Seats are not available."})
         }
 
         // Get the show details
         const showData = await Show.findById(showId).populate('movie');
-        console.log('🔍 Booking: Show data found:', showData ? 'Yes' : 'No');
 
         // Use the totalAmount from frontend if provided, otherwise calculate
         let finalAmount = totalAmount;
@@ -197,11 +166,8 @@ export const createBooking = async (req, res)=>{
             finalAmount = showData.showPrice * selectedSeats.length;
         }
 
-        console.log('🔍 Booking: Final amount:', finalAmount);
-
         // Validate minimum amount for Stripe
         if (finalAmount < 1) {
-            console.log('❌ Booking: Amount too low for Stripe processing');
             return res.json({success: false, message: "Amount must be at least ₹1.00 for payment processing."});
         }
 
@@ -213,7 +179,7 @@ export const createBooking = async (req, res)=>{
             bookedSeats: selectedSeats
         })
 
-        console.log('✅ Booking: Booking created with ID:', booking._id);
+
 
         selectedSeats.map((seat)=>{
             showData.occupiedSeats[seat] = userId;
@@ -222,7 +188,6 @@ export const createBooking = async (req, res)=>{
         showData.markModified('occupiedSeats');
 
         await showData.save();
-        console.log('✅ Booking: Show updated with occupied seats');
 
          // Stripe Gateway Initialize
          const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY)
@@ -235,12 +200,7 @@ export const createBooking = async (req, res)=>{
          const minimumAmount = 100; // ₹1.00 in paise
          const finalUnitAmount = Math.max(unitAmountInPaise, minimumAmount);
          
-         console.log('🔍 Booking: Amount conversion:', {
-             originalAmount: finalAmount,
-             unitAmountInPaise: unitAmountInPaise,
-             finalUnitAmount: finalUnitAmount,
-             amountInRupees: finalUnitAmount / 100
-         });
+         
          
          const line_items = [{
             price_data: {
@@ -271,11 +231,7 @@ export const createBooking = async (req, res)=>{
             phone_number_collection: { enabled: true } // Phone number collection for better customer service
          })
 
-         console.log('🔍 Booking: Stripe session created with metadata:', {
-             sessionId: session.id,
-             bookingId: booking._id.toString(),
-             metadata: session.metadata
-         });
+         
 
          booking.paymentLink = session.url
          await booking.save()
@@ -283,11 +239,9 @@ export const createBooking = async (req, res)=>{
          // Set custom timeout for booking payment check (10 minutes)
          setBookingTimeout(booking._id.toString());
 
-         console.log('✅ Booking: Stripe session created, redirecting to payment');
-         res.json({success: true, url: session.url})
+                   res.json({success: true, url: session.url})
 
     } catch (error) {
-        console.log('❌ Booking: Error creating booking:', error.message);
         res.json({success: false, message: error.message})
     }
 }
@@ -303,7 +257,6 @@ export const getOccupiedSeats = async (req, res)=>{
         res.json({success: true, occupiedSeats})
 
     } catch (error) {
-        console.log(error.message);
         res.json({success: false, message: error.message})
     }
 }
@@ -318,12 +271,7 @@ export const checkPaymentStatus = async (req, res) => {
             return res.json({ success: false, message: 'Booking not found' });
         }
 
-        console.log('🔍 Booking: Current payment status:', {
-            bookingId: booking._id,
-            isPaid: booking.isPaid,
-            status: booking.status,
-            paymentDate: booking.paymentDate
-        });
+
 
         res.json({ 
             success: true, 
@@ -338,7 +286,6 @@ export const checkPaymentStatus = async (req, res) => {
         });
 
     } catch (error) {
-        console.log('❌ Booking: Error checking payment status:', error.message);
         res.json({ success: false, message: error.message });
     }
 }
@@ -362,11 +309,7 @@ export const forceUpdatePaymentStatus = async (req, res) => {
         
         await booking.save();
         
-        console.log('✅ Booking: Payment status manually updated:', {
-            bookingId: booking._id,
-            isPaid: booking.isPaid,
-            status: booking.status
-        });
+
 
         res.json({ 
             success: true, 
@@ -380,7 +323,6 @@ export const forceUpdatePaymentStatus = async (req, res) => {
         });
 
     } catch (error) {
-        console.log('❌ Booking: Error updating payment status:', error.message);
         res.json({ success: false, message: error.message });
     }
 }
@@ -389,14 +331,13 @@ export const forceUpdatePaymentStatus = async (req, res) => {
 export const testWebhook = async (req, res) => {
     try {
         const { bookingId } = req.body;
-        console.log('🔍 Booking: Testing webhook for booking:', bookingId);
+
         
         if (!bookingId) {
             return res.json({ success: false, message: 'Booking ID required' });
         }
         
         const result = await updateBookingToPaid(bookingId);
-        console.log('🔍 Booking: Test webhook result:', result);
         
         res.json({ 
             success: result, 
@@ -404,16 +345,12 @@ export const testWebhook = async (req, res) => {
         });
         
     } catch (error) {
-        console.log('❌ Booking: Error in test webhook:', error.message);
         res.json({ success: false, message: error.message });
     }
 }
 
 // Simple webhook test endpoint
 export const webhookTest = async (req, res) => {
-    console.log('🔍 Booking: Webhook test endpoint called');
-    console.log('🔍 Booking: Request body:', req.body);
-    console.log('🔍 Booking: Request headers:', req.headers);
     res.json({ success: true, message: 'Webhook test endpoint working' });
 }
 
@@ -438,21 +375,13 @@ export const getMyBookings = async (req, res) => {
             })
             .sort({ createdAt: -1 }); // Most recent first
 
-        console.log('✅ Booking: Retrieved bookings for user:', userId, 'Count:', bookings.length);
+
 
         // Process bookings to include formatted data
         const processedBookings = bookings.map(booking => {
             const show = booking.show;
             
-            console.log('🔍 Booking: Processing booking:', {
-                bookingId: booking._id,
-                showId: show?._id,
-                theatre: show?.theatre,
-                room: show?.room,
-                language: show?.language,
-                time: show?.showDateTime,
-                movie: show?.movie
-            });
+
             
             // Get room information for format
             let roomInfo = null;
@@ -460,7 +389,6 @@ export const getMyBookings = async (req, res) => {
             if (show?.theatre?.rooms && show?.room) {
                 roomInfo = show.theatre.rooms.find(room => room._id.toString() === show.room);
                 format = roomInfo?.type || 'Normal';
-                console.log('🔍 Booking: Found room info:', { roomInfo, format });
             }
             
             const processedBooking = {
@@ -476,15 +404,7 @@ export const getMyBookings = async (req, res) => {
                 }
             };
             
-            console.log('🔍 Booking: Processed booking:', {
-                bookingId: processedBooking._id,
-                theatreName: processedBooking.show.theatreName,
-                language: processedBooking.show.language,
-                format: processedBooking.show.format,
-                time: processedBooking.show.time,
-                movieId: processedBooking.show.movie?._id,
-                movieTitle: processedBooking.show.movie?.title
-            });
+
             
             return processedBooking;
         });
@@ -495,7 +415,6 @@ export const getMyBookings = async (req, res) => {
         });
 
     } catch (error) {
-        console.log('❌ Booking: Error getting user bookings:', error.message);
         res.json({ success: false, message: error.message });
     }
 }
@@ -507,7 +426,7 @@ export const retryPayment = async (req, res) => {
         const { bookingId } = req.params;
         const { origin } = req.headers;
 
-        console.log('🔍 Booking: Retrying payment for booking:', bookingId);
+
 
         // Find the booking and verify ownership
         const booking = await Booking.findById(bookingId);
@@ -531,7 +450,6 @@ export const retryPayment = async (req, res) => {
 
         // Validate minimum amount for Stripe
         if (booking.amount < 1) {
-            console.log('❌ Booking: Amount too low for Stripe processing');
             return res.json({ success: false, message: "Amount must be at least ₹1.00 for payment processing." });
         }
 
@@ -559,12 +477,7 @@ export const retryPayment = async (req, res) => {
         const minimumAmount = 100; // ₹1.00 in paise
         const finalUnitAmount = Math.max(unitAmountInPaise, minimumAmount);
         
-        console.log('🔍 Booking: Retry payment amount conversion:', {
-            originalAmount: booking.amount,
-            unitAmountInPaise: unitAmountInPaise,
-            finalUnitAmount: finalUnitAmount,
-            amountInRupees: finalUnitAmount / 100
-        });
+
         
         const line_items = [{
             price_data: {
@@ -597,12 +510,11 @@ export const retryPayment = async (req, res) => {
         booking.paymentLink = session.url;
         await booking.save();
 
-        console.log('✅ Booking: New payment session created for booking:', bookingId);
+
 
         res.json({ success: true, url: session.url });
 
     } catch (error) {
-        console.log('❌ Booking: Error retrying payment:', error.message);
         res.json({ success: false, message: error.message });
     }
 }
@@ -611,7 +523,7 @@ export const retryPayment = async (req, res) => {
 export const testPaymentConfirmation = async (req, res) => {
     try {
         const { bookingId } = req.body;
-        console.log('🔍 Booking: Testing payment confirmation for booking:', bookingId);
+
         
         if (!bookingId) {
             return res.json({ success: false, message: 'Booking ID required' });
@@ -623,25 +535,14 @@ export const testPaymentConfirmation = async (req, res) => {
             return res.json({ success: false, message: 'Booking not found' });
         }
         
-        console.log('🔍 Booking: Current booking status:', {
-            bookingId: booking._id,
-            isPaid: booking.isPaid,
-            status: booking.status,
-            paymentDate: booking.paymentDate
-        });
+
         
         // Try to update the booking
         const result = await updateBookingToPaid(bookingId);
-        console.log('🔍 Booking: Update result:', result);
         
         // Check the booking again after update
         const updatedBooking = await Booking.findById(bookingId);
-        console.log('🔍 Booking: Updated booking status:', {
-            bookingId: updatedBooking._id,
-            isPaid: updatedBooking.isPaid,
-            status: updatedBooking.status,
-            paymentDate: updatedBooking.paymentDate
-        });
+
         
         res.json({ 
             success: result, 
@@ -657,7 +558,6 @@ export const testPaymentConfirmation = async (req, res) => {
         });
         
     } catch (error) {
-        console.log('❌ Booking: Error in test payment confirmation:', error.message);
         res.json({ success: false, message: error.message });
     }
 }
@@ -665,7 +565,7 @@ export const testPaymentConfirmation = async (req, res) => {
 // Check Stripe configuration
 export const checkStripeConfig = async (req, res) => {
     try {
-        console.log('🔍 Booking: Checking Stripe configuration...');
+
         
         const config = {
             hasSecretKey: !!process.env.STRIPE_SECRET_KEY,
@@ -676,7 +576,7 @@ export const checkStripeConfig = async (req, res) => {
             webhookSecretPrefix: process.env.STRIPE_WEBHOOK_SECRET?.substring(0, 7) || 'Not set'
         };
         
-        console.log('🔍 Booking: Stripe config:', config);
+
         
         res.json({ 
             success: true, 
@@ -685,7 +585,6 @@ export const checkStripeConfig = async (req, res) => {
         });
         
     } catch (error) {
-        console.log('❌ Booking: Error checking Stripe config:', error.message);
         res.json({ success: false, message: error.message });
     }
 }
@@ -693,7 +592,7 @@ export const checkStripeConfig = async (req, res) => {
 // List all bookings (for testing)
 export const listAllBookings = async (req, res) => {
     try {
-        console.log('🔍 Booking: Listing all bookings...');
+
         
         const bookings = await Booking.find({})
             .populate('user', 'name email')
@@ -713,7 +612,7 @@ export const listAllBookings = async (req, res) => {
             paymentDate: booking.paymentDate
         }));
         
-        console.log('🔍 Booking: Found bookings:', bookingList.length);
+
         
         res.json({ 
             success: true, 
@@ -722,7 +621,6 @@ export const listAllBookings = async (req, res) => {
         });
         
     } catch (error) {
-        console.log('❌ Booking: Error listing bookings:', error.message);
         res.json({ success: false, message: error.message });
     }
 }
