@@ -35,7 +35,6 @@ async function downloadBackdropIfNeeded(backdropPath) {
   const localPath = path.join(IMAGES_DIR, filename);
   const exists = await fs.pathExists(localPath);
   if (!exists) {
-
     const url = `https://image.tmdb.org/t/p/w1280${backdropPath}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to download backdrop image');
@@ -49,7 +48,7 @@ async function downloadBackdropIfNeeded(backdropPath) {
       await new Promise(resolve => setTimeout(resolve, 100));
       tries++;
     }
-
+  }
   return filename;
 }
 
