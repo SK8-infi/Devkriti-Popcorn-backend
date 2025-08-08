@@ -1,6 +1,6 @@
 import express from "express";
 import { protectAdmin } from "../middleware/auth.js";
-import { getAllBookings, getAllShows, getDashboardData, isAdmin, setTheatreName, getMyTheatre, updateMyTheatreLayout, getAllTheatres, getTheatreById, addRoomToTheatre, updateRoomInTheatre, deleteRoomFromTheatre, getAllUsers, updateTheatreAdmin, getTheatreAdminInfo } from "../controllers/adminController.js";
+import { getAllBookings, getAllShows, getDashboardData, isAdmin, setTheatreName, getMyTheatre, updateMyTheatreLayout, getAllTheatres, getTheatreById, addRoomToTheatre, updateRoomInTheatre, deleteRoomFromTheatre, getAllUsers, updateTheatreAdmin, getTheatreAdminInfo, getTheatreAnalytics, triggerBookingCleanupAPI } from "../controllers/adminController.js";
 
 const adminRouter = express.Router();
 
@@ -22,5 +22,11 @@ adminRouter.get('/theatre/:theatreId', getTheatreById);
 // Theatre admin management routes
 adminRouter.put('/theatre/admin', protectAdmin, updateTheatreAdmin);
 adminRouter.get('/theatre/:theatreId/admin', getTheatreAdminInfo);
+
+// Theatre analytics route
+adminRouter.get('/theatre-analytics', protectAdmin, getTheatreAnalytics);
+
+// Booking cleanup route (for testing)
+adminRouter.post('/booking-cleanup', protectAdmin, triggerBookingCleanupAPI);
 
 export default adminRouter;

@@ -2,6 +2,8 @@ import Booking from "../models/Booking.js"
 import Show from "../models/Show.js";
 import User from "../models/User.js";
 import Theatre from '../models/Theatre.js';
+import Movie from '../models/Movie.js';
+import { triggerBookingCleanup } from '../utils/cronJobs.js';
 
 
 // API to check if user is admin
@@ -412,5 +414,256 @@ export const getTheatreAdminInfo = async (req, res) => {
     } catch (error) {
         console.error('getTheatreAdminInfo error:', error);
         res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// API to get theatre analytics
+export const getTheatreAnalytics = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const { period = 'month' } = req.query;
+        
+        // Calculate date range based on period
+        const now = new Date();
+        let startDate = new Date();
+        
+        switch (period) {
+            case 'week':
+                startDate.setDate(now.getDate() - 7);
+                break;
+            case 'month':
+                startDate.setMonth(now.getMonth() - 1);
+                break;
+            case 'quarter':
+                startDate.setMonth(now.getMonth() - 3);
+                break;
+            case 'year':
+                startDate.setFullYear(now.getFullYear() - 1);
+                break;
+            default:
+                startDate.setMonth(now.getMonth() - 1);
+        }
+        
+        // Get admin's theatres
+        const theatres = await Theatre.find({ admin: userId }).populate('rooms');
+        
+        if (!theatres || theatres.length === 0) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'No theatres found for this admin' 
+            });
+        }
+        
+        const analytics = [];
+        
+        for (const theatre of theatres) {
+            // Get shows for this theatre in the period
+            const shows = await Show.find({
+                theatre: theatre._id,
+                showDateTime: { 
+                    $gte: startDate,
+                    $lte: now 
+                }
+            }).populate('movie');
+            
+            const showIds = shows.map(show => show._id);
+            
+            // Get bookings for this period
+            const bookings = await Booking.find({
+                show: { $in: showIds },
+                isPaid: true,
+                createdAt: { 
+                    $gte: startDate,
+                    $lte: now 
+                }
+            }).populate('show');
+            
+            // Calculate previous period for comparison
+            const prevStartDate = new Date(startDate);
+            const prevEndDate = new Date(startDate);
+            const periodDuration = now.getTime() - startDate.getTime();
+            prevStartDate.setTime(startDate.getTime() - periodDuration);
+            
+            const prevBookings = await Booking.find({
+                show: { $in: showIds },
+                isPaid: true,
+                createdAt: { 
+                    $gte: prevStartDate,
+                    $lte: prevEndDate 
+                }
+            });
+            
+            // Calculate metrics
+            const totalRevenue = bookings.reduce((sum, booking) => sum + (booking.amount || 0), 0);
+            const totalBookings = bookings.length;
+            
+            const prevTotalRevenue = prevBookings.reduce((sum, booking) => sum + (booking.amount || 0), 0);
+            const prevTotalBookings = prevBookings.length;
+            
+            const revenueTrend = prevTotalRevenue > 0 
+                ? ((totalRevenue - prevTotalRevenue) / prevTotalRevenue) * 100 
+                : 0;
+            const bookingsTrend = prevTotalBookings > 0 
+                ? ((totalBookings - prevTotalBookings) / prevTotalBookings) * 100 
+                : 0;
+            
+            // Calculate occupancy rates
+            const totalSeats = shows.reduce((sum, show) => {
+                const room = theatre.rooms.find(r => r._id.toString() === show.room.toString());
+                return sum + (room ? room.totalSeats : 0);
+            }, 0);
+            
+            const occupiedSeats = bookings.reduce((sum, booking) => sum + booking.seats.length, 0);
+            const averageOccupancy = totalSeats > 0 ? (occupiedSeats / totalSeats) * 100 : 0;
+            
+            // Find peak occupancy
+            const showOccupancies = shows.map(show => {
+                const showBookings = bookings.filter(b => b.show._id.toString() === show._id.toString());
+                const room = theatre.rooms.find(r => r._id.toString() === show.room.toString());
+                const showSeats = showBookings.reduce((sum, booking) => sum + booking.seats.length, 0);
+                return room ? (showSeats / room.totalSeats) * 100 : 0;
+            });
+            const peakOccupancy = Math.max(...showOccupancies, 0);
+            
+            // Popular movies analysis
+            const movieStats = {};
+            bookings.forEach(booking => {
+                if (booking.show && booking.show.movie) {
+                    const movieId = booking.show.movie._id.toString();
+                    if (!movieStats[movieId]) {
+                        movieStats[movieId] = {
+                            _id: movieId,
+                            title: booking.show.movie.title,
+                            bookings: 0,
+                            revenue: 0,
+                            seats: 0,
+                            shows: new Set()
+                        };
+                    }
+                    movieStats[movieId].bookings += 1;
+                    movieStats[movieId].revenue += booking.amount || 0;
+                    movieStats[movieId].seats += booking.seats.length;
+                    movieStats[movieId].shows.add(booking.show._id.toString());
+                }
+            });
+            
+            const popularMovies = Object.values(movieStats)
+                .map(movie => ({
+                    ...movie,
+                    showCount: movie.shows.size,
+                    occupancy: movie.seats > 0 ? (movie.seats / (movie.showCount * 100)) * 100 : 0
+                }))
+                .sort((a, b) => b.revenue - a.revenue)
+                .slice(0, 5);
+            
+            // Peak hours analysis
+            const hourStats = {};
+            bookings.forEach(booking => {
+                if (booking.show && booking.show.showDateTime) {
+                    const hour = new Date(booking.show.showDateTime).getHours();
+                    if (!hourStats[hour]) {
+                        hourStats[hour] = 0;
+                    }
+                    hourStats[hour] += 1;
+                }
+            });
+            
+            const peakHours = Object.entries(hourStats)
+                .map(([hour, bookings]) => ({
+                    time: `${hour}:00`,
+                    bookings
+                }))
+                .sort((a, b) => b.bookings - a.bookings)
+                .slice(0, 5);
+            
+            // Room performance
+            const roomPerformance = theatre.rooms.map(room => {
+                const roomShows = shows.filter(show => show.room.toString() === room._id.toString());
+                const roomBookings = bookings.filter(booking => 
+                    roomShows.some(show => show._id.toString() === booking.show._id.toString())
+                );
+                
+                const roomRevenue = roomBookings.reduce((sum, booking) => sum + (booking.amount || 0), 0);
+                const roomSeats = roomBookings.reduce((sum, booking) => sum + booking.seats.length, 0);
+                const roomOccupancy = room.totalSeats > 0 && roomShows.length > 0 
+                    ? (roomSeats / (room.totalSeats * roomShows.length)) * 100 
+                    : 0;
+                
+                return {
+                    name: room.name,
+                    type: room.type,
+                    occupancy: roomOccupancy,
+                    revenue: roomRevenue
+                };
+            });
+            
+            // Active shows count
+            const activeShows = await Show.countDocuments({
+                theatre: theatre._id,
+                showDateTime: { $gte: now }
+            });
+            
+            const totalShows = await Show.countDocuments({
+                theatre: theatre._id
+            });
+            
+            analytics.push({
+                theatre: {
+                    _id: theatre._id,
+                    name: theatre.name,
+                    city: theatre.city,
+                    averageRating: theatre.averageRating,
+                    reviewCount: theatre.reviewCount
+                },
+                revenue: {
+                    total: totalRevenue,
+                    trend: revenueTrend
+                },
+                bookings: {
+                    total: totalBookings,
+                    trend: bookingsTrend
+                },
+                occupancy: {
+                    average: averageOccupancy,
+                    peak: peakOccupancy
+                },
+                shows: {
+                    active: activeShows,
+                    total: totalShows
+                },
+                popularMovies,
+                peakHours,
+                roomPerformance
+            });
+        }
+        
+        res.json({ 
+            success: true, 
+            analytics,
+            period 
+        });
+        
+    } catch (error) {
+        console.error('getTheatreAnalytics error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// API to manually trigger booking cleanup (for testing)
+export const triggerBookingCleanupAPI = async (req, res) => {
+    try {
+        const result = await triggerBookingCleanup();
+        res.json({
+            success: true,
+            message: `Booking cleanup completed successfully`,
+            result: result
+        });
+    } catch (error) {
+        console.error('Error in booking cleanup API:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to trigger booking cleanup',
+            error: error.message 
+        });
     }
 };
