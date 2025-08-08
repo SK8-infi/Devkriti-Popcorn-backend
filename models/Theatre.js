@@ -12,7 +12,9 @@ const theatreSchema = new mongoose.Schema({
       type: { type: String, required: true },
       layout: { type: [[Number]], required: true }
     }
-  ]
+  ],
+  averageRating: { type: Number, default: 0 },
+  reviewCount: { type: Number, default: 0 }
 });
 
 const Theatre = mongoose.model("Theatre", theatreSchema);
