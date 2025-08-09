@@ -22686,6 +22686,393 @@
       ],
       "poster_url": "/api/images/yHYj2t3NzsjkHVYa0bPri4sMBsg.jpg",
       "backdrop_url": "/api/images/tdMbbFhqyEqOK1QzNTvJjHWKbZX.jpg"
+    },
+    {
+      "adult": false,
+      "backdrop_path": "/7HqLLVjdjhXS0Qoz1SgZofhkIpE.jpg",
+      "belongs_to_collection": {
+        "id": 1458864,
+        "name": "How to Train Your Dragon (Live-Action) Collection",
+        "poster_path": null,
+        "backdrop_path": "/eKpWn8DwS6xpAKs4eLb4PmrXnhk.jpg"
+      },
+      "budget": 150000000,
+      "genres": [
+        {
+          "id": 14,
+          "name": "Fantasy"
+        },
+        {
+          "id": 10751,
+          "name": "Family"
+        },
+        {
+          "id": 28,
+          "name": "Action"
+        },
+        {
+          "id": 12,
+          "name": "Adventure"
+        }
+      ],
+      "homepage": "https://www.welcometoberk.com/",
+      "id": 1087192,
+      "imdb_id": "tt26743210",
+      "origin_country": [
+        "US"
+      ],
+      "original_language": "en",
+      "original_title": "How to Train Your Dragon",
+      "overview": "On the rugged isle of Berk, where Vikings and dragons have been bitter enemies for generations, Hiccup stands apart, defying centuries of tradition when he befriends Toothless, a feared Night Fury dragon. Their unlikely bond reveals the true nature of dragons, challenging the very foundations of Viking society.",
+      "popularity": 406.6189,
+      "poster_path": "/q5pXRYTycaeW6dEgsCrd4mYPmxM.jpg",
+      "production_companies": [
+        {
+          "id": 521,
+          "logo_path": "/3BPX5VGBov8SDqTV7wC1L1xShAS.png",
+          "name": "DreamWorks Animation",
+          "origin_country": "US"
+        },
+        {
+          "id": 2527,
+          "logo_path": "/mNSqvPrlkAcdQlEZ3Ttmx75Z8Xw.png",
+          "name": "Marc Platt Productions",
+          "origin_country": "US"
+        }
+      ],
+      "production_countries": [
+        {
+          "iso_3166_1": "US",
+          "name": "United States of America"
+        }
+      ],
+      "release_date": "2025-06-06",
+      "revenue": 621102424,
+      "runtime": 125,
+      "spoken_languages": [
+        {
+          "english_name": "English",
+          "iso_639_1": "en",
+          "name": "English"
+        }
+      ],
+      "status": "Released",
+      "tagline": "The legend is real.",
+      "title": "How to Train Your Dragon",
+      "video": false,
+      "vote_average": 8.031,
+      "vote_count": 1490,
+      "casts": [
+        {
+          "adult": false,
+          "gender": 2,
+          "id": 2803710,
+          "known_for_department": "Acting",
+          "name": "Mason Thames",
+          "original_name": "Mason Thames",
+          "popularity": 13.8372,
+          "profile_path": "/8xgGYl8AMWVB44r8wEyweiao5bO.jpg",
+          "cast_id": 9,
+          "character": "Hiccup",
+          "credit_id": "647651e5cf62cd0162642620",
+          "order": 0
+        },
+        {
+          "adult": false,
+          "gender": 1,
+          "id": 2064124,
+          "known_for_department": "Acting",
+          "name": "Nico Parker",
+          "original_name": "Nico Parker",
+          "popularity": 11.2409,
+          "profile_path": "/gt0NJClVSCPCEfcPgcLj3f85uLa.jpg",
+          "cast_id": 10,
+          "character": "Astrid",
+          "credit_id": "647651f289d97f00db4dd00d",
+          "order": 1
+        },
+        {
+          "adult": false,
+          "gender": 2,
+          "id": 17276,
+          "known_for_department": "Acting",
+          "name": "Gerard Butler",
+          "original_name": "Gerard Butler",
+          "popularity": 4.0598,
+          "profile_path": "/rTO5opVC3Gs6hPYAxWSP9eEjogi.jpg",
+          "cast_id": 12,
+          "character": "Stoick",
+          "credit_id": "659883a689b56101a4c382a5",
+          "order": 2
+        },
+        {
+          "adult": false,
+          "gender": 2,
+          "id": 11109,
+          "known_for_department": "Acting",
+          "name": "Nick Frost",
+          "original_name": "Nick Frost",
+          "popularity": 2.6658,
+          "profile_path": "/2CHS4t6miNGLgMQAjhFqb4fFuKS.jpg",
+          "cast_id": 13,
+          "character": "Gobber",
+          "credit_id": "65a03722109dec012e090fe9",
+          "order": 3
+        },
+        {
+          "adult": false,
+          "gender": 2,
+          "id": 3792786,
+          "known_for_department": "Acting",
+          "name": "Gabriel Howell",
+          "original_name": "Gabriel Howell",
+          "popularity": 8.4821,
+          "profile_path": "/u3PTI9FlrpGFZVMoHXZZBiYWMCl.jpg",
+          "cast_id": 15,
+          "character": "Snoutlout",
+          "credit_id": "65b18c222790bf01515635e0",
+          "order": 4
+        },
+        {
+          "adult": false,
+          "gender": 2,
+          "id": 1139349,
+          "known_for_department": "Acting",
+          "name": "Julian Dennison",
+          "original_name": "Julian Dennison",
+          "popularity": 3.2388,
+          "profile_path": "/sBvCEbO40SaPAHzWwYId63FqwuS.jpg",
+          "cast_id": 14,
+          "character": "Fishlegs",
+          "credit_id": "65b18c113c43440193665bca",
+          "order": 5
+        },
+        {
+          "adult": false,
+          "gender": 1,
+          "id": 1587577,
+          "known_for_department": "Acting",
+          "name": "Bronwyn James",
+          "original_name": "Bronwyn James",
+          "popularity": 10.8936,
+          "profile_path": "/mSaZaVNsAVU70VH5go2D2oS8OIL.jpg",
+          "cast_id": 16,
+          "character": "Ruffnut",
+          "credit_id": "65b18c39ea37e00138e443b6",
+          "order": 6
+        },
+        {
+          "adult": false,
+          "gender": 2,
+          "id": 2104260,
+          "known_for_department": "Acting",
+          "name": "Harry Trevaldwyn",
+          "original_name": "Harry Trevaldwyn",
+          "popularity": 9.6789,
+          "profile_path": "/uYHekOiCHZoob1tW11vTceplA2e.jpg",
+          "cast_id": 17,
+          "character": "Tuffnut",
+          "credit_id": "65b18c4c3c43440193665bef",
+          "order": 7
+        },
+        {
+          "adult": false,
+          "gender": 2,
+          "id": 1216581,
+          "known_for_department": "Acting",
+          "name": "Murray McArthur",
+          "original_name": "Murray McArthur",
+          "popularity": 9.832,
+          "profile_path": "/aW9Ib3PzKuWuSd0YrTIbFLGX877.jpg",
+          "cast_id": 45,
+          "character": "Hoark",
+          "credit_id": "67a2cfa444d6863b748a6bb7",
+          "order": 8
+        },
+        {
+          "adult": false,
+          "gender": 2,
+          "id": 11115,
+          "known_for_department": "Acting",
+          "name": "Peter Serafinowicz",
+          "original_name": "Peter Serafinowicz",
+          "popularity": 15.2428,
+          "profile_path": "/atXOX0UQzIZkcnpNj1cluBdHwAE.jpg",
+          "cast_id": 44,
+          "character": "Spitelout",
+          "credit_id": "67a2cf9873542082b69fc540",
+          "order": 9
+        },
+        {
+          "adult": false,
+          "gender": 1,
+          "id": 3399457,
+          "known_for_department": "Acting",
+          "name": "Naomi Wirthner",
+          "original_name": "Naomi Wirthner",
+          "popularity": 2.0847,
+          "profile_path": "/qcp8DBhZpiekFnljrD8Axj0Dl1u.jpg",
+          "cast_id": 67,
+          "character": "Gothi",
+          "credit_id": "684e86952712534a241ec83c",
+          "order": 10
+        },
+        {
+          "adult": false,
+          "gender": 1,
+          "id": 3295331,
+          "known_for_department": "Acting",
+          "name": "Ruth Codd",
+          "original_name": "Ruth Codd",
+          "popularity": 4.1103,
+          "profile_path": "/zNMtd2SJ9WLVqVRMRjlSLGJ6W7e.jpg",
+          "cast_id": 18,
+          "character": "Phlegma",
+          "credit_id": "65e686a7cede690162bd982b",
+          "order": 11
+        },
+        {
+          "adult": false,
+          "gender": 1,
+          "id": 1987916,
+          "known_for_department": "Acting",
+          "name": "Andrea Ware",
+          "original_name": "Andrea Ware",
+          "popularity": 0.2949,
+          "profile_path": "/phtGH4BkVv3hGNJYVlPXlyjYY4Y.jpg",
+          "cast_id": 68,
+          "character": "Burnheart",
+          "credit_id": "684e86a924c39ef4e51ec8a7",
+          "order": 12
+        },
+        {
+          "adult": false,
+          "gender": 1,
+          "id": 1593227,
+          "known_for_department": "Acting",
+          "name": "Anna Leong Brophy",
+          "original_name": "Anna Leong Brophy",
+          "popularity": 3.5941,
+          "profile_path": "/r4CyeFDfsE6R1M2KTnvZ8RsEWxy.jpg",
+          "cast_id": 69,
+          "character": "Retcha",
+          "credit_id": "684e86b631a9835f87294a2d",
+          "order": 13
+        },
+        {
+          "adult": false,
+          "gender": 2,
+          "id": 1919372,
+          "known_for_department": "Acting",
+          "name": "Marcus Onilude",
+          "original_name": "Marcus Onilude",
+          "popularity": 6.904,
+          "profile_path": "/aiK0T1ln24omJcgQd8XkTein4Xp.jpg",
+          "cast_id": 70,
+          "character": "Snorti",
+          "credit_id": "684e86c300ebb6ca7f1bf192",
+          "order": 14
+        },
+        {
+          "adult": false,
+          "gender": 2,
+          "id": 5505971,
+          "known_for_department": "Acting",
+          "name": "Pete Selwood",
+          "original_name": "Pete Selwood",
+          "popularity": 0.0764,
+          "profile_path": null,
+          "cast_id": 71,
+          "character": "Drül",
+          "credit_id": "684e87221b74a9fa283dfae6",
+          "order": 15
+        },
+        {
+          "adult": false,
+          "gender": 0,
+          "id": 2774982,
+          "known_for_department": "Acting",
+          "name": "Daniel-John Williams",
+          "original_name": "Daniel-John Williams",
+          "popularity": 0.3446,
+          "profile_path": null,
+          "cast_id": 72,
+          "character": "Fungi",
+          "credit_id": "684e87685d0fcf77305c7c48",
+          "order": 16
+        },
+        {
+          "adult": false,
+          "gender": 1,
+          "id": 2486590,
+          "known_for_department": "Acting",
+          "name": "Kate Kennedy",
+          "original_name": "Kate Kennedy",
+          "popularity": 1.2958,
+          "profile_path": "/xrPSWHnBVeLxK8i1dLVcOzphx0T.jpg",
+          "cast_id": 73,
+          "character": "Flatula",
+          "credit_id": "684e87be5152def6a2294c42",
+          "order": 17
+        },
+        {
+          "adult": false,
+          "gender": 0,
+          "id": 5505972,
+          "known_for_department": "Acting",
+          "name": "Selina Jones",
+          "original_name": "Selina Jones",
+          "popularity": 0.0741,
+          "profile_path": null,
+          "cast_id": 74,
+          "character": "Loogi",
+          "credit_id": "684e87d6b963c0e95c1bf0af",
+          "order": 18
+        },
+        {
+          "adult": false,
+          "gender": 2,
+          "id": 1516140,
+          "known_for_department": "Acting",
+          "name": "Nick Cornwall",
+          "original_name": "Nick Cornwall",
+          "popularity": 4.858,
+          "profile_path": "/bzCo91Y6CC4g4dKMoMwnDHUhemN.jpg",
+          "cast_id": 75,
+          "character": "Hürl",
+          "credit_id": "684e880acaf33a218dbb4ea6",
+          "order": 19
+        }
+      ],
+      "trailers": [
+        {
+          "id": "681a25d55f241de83c443ef6",
+          "key": "OWEq2Pf8qpk",
+          "name": "IMAX Trailer",
+          "type": "Trailer",
+          "site": "YouTube",
+          "size": 1080,
+          "official": true,
+          "published_at": "2025-05-06T15:00:58.000Z",
+          "youtube_url": "https://www.youtube.com/watch?v=OWEq2Pf8qpk",
+          "youtube_embed_url": "https://www.youtube.com/embed/OWEq2Pf8qpk",
+          "thumbnail_url": "https://img.youtube.com/vi/OWEq2Pf8qpk/maxresdefault.jpg"
+        }
+      ],
+      "logos": [
+        {
+          "file_path": "/sEJ7d72IXxoktZeJ4V6z35Hhe4a.png",
+          "width": 1529,
+          "height": 297,
+          "vote_average": 5.786,
+          "vote_count": 7,
+          "url": "https://image.tmdb.org/t/p/original/sEJ7d72IXxoktZeJ4V6z35Hhe4a.png"
+        }
+      ],
+      "poster_url": "/api/images/q5pXRYTycaeW6dEgsCrd4mYPmxM.jpg",
+      "backdrop_url": "/api/images/backdrop_7HqLLVjdjhXS0Qoz1SgZofhkIpE.jpg"
     }
-  ]
+  ],
+  "lastUpdated": "2025-08-09T08:03:20.580Z",
+  "totalMovies": 41
 }
