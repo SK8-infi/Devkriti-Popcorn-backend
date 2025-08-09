@@ -59,11 +59,8 @@ const port = 3000;
 
 await connectDB();
 
-// Start TMDB movie fetcher
+// Start TMDB movie fetcher (includes both memory and file caching)
 startMovieFetcher();
-
-// Fetch and cache latest movies on server startup
-fetchAndCacheLatestMovies();
 
 // Start custom cron jobs (replaces Inngest scheduled functions)
 startCronJobs();
