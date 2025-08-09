@@ -4,6 +4,7 @@ import handlebars from 'handlebars';
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { generateSimpleTicket } from './simpleTicketGenerator.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -334,6 +335,9 @@ const generateTicketPDF = async (html, bookingId) => {
     try {
         console.log('🔄 Launching Puppeteer for PDF generation...');
         
+        // Try to detect if we're in a limited environment
+        const isLimitedEnv = process.env.NODE_ENV === 'production' || process.platform === 'linux';
+        
         const browser = await puppeteer.launch({
             headless: 'new',
             args: [
@@ -345,9 +349,17 @@ const generateTicketPDF = async (html, bookingId) => {
                 '--no-zygote',
                 '--disable-gpu',
                 '--disable-web-security',
-                '--disable-features=VizDisplayCompositor'
+                '--disable-features=VizDisplayCompositor',
+                '--disable-extensions',
+                '--disable-plugins',
+                '--disable-default-apps',
+                '--no-default-browser-check',
+                '--disable-background-timer-throttling',
+                '--disable-renderer-backgrounding',
+                '--disable-backgrounding-occluded-windows'
             ],
-            timeout: 60000 // 60 second timeout
+            timeout: 60000, // 60 second timeout
+            executablePath: isLimitedEnv ? '/usr/bin/google-chrome-stable' : undefined
         });
         
         console.log('✅ Puppeteer browser launched successfully');
@@ -400,31 +412,52 @@ const generateTicketPDF = async (html, bookingId) => {
             console.error('🚨 Spawn Error - Chrome/Chromium executable may be missing or permissions issue');
         }
         
+        // Check if this is a Chrome dependency issue
+        if (error.message.includes('libatk') || error.message.includes('shared libraries') || error.message.includes('Failed to launch')) {
+            console.error('🚨 Chrome dependencies missing - attempting simple fallback');
+            throw new Error('Chrome dependencies missing for PDF generation. Please install required system packages or use alternative PDF generation.');
+        }
+        
         throw new Error(`PDF Generation Failed: ${error.message}`);
     }
 };
 
-// Generate complete ticket
+// Generate complete ticket with fallback
 export const generateTicket = async (bookingData) => {
     try {
         console.log('🎫 Generating ticket for booking:', bookingData._id);
         
-        // Generate HTML
-        const html = await generateTicketHTML(bookingData);
+        // Try Puppeteer first (best quality)
+        try {
+            const html = await generateTicketHTML(bookingData);
+            const { pdfBuffer, pdfPath } = await generateTicketPDF(html, bookingData._id);
+            
+            console.log('✅ Ticket generated successfully with Puppeteer:', pdfPath);
+            return { 
+                html, 
+                pdfBuffer, 
+                pdfPath, 
+                bookingId: bookingData._id 
+            };
+            
+        } catch (puppeteerError) {
+            console.error('⚠️ Puppeteer failed, falling back to simple ticket:', puppeteerError.message);
+            
+            // Fall back to simple ticket generation
+            const simpleTicket = await generateSimpleTicket(bookingData);
+            console.log('✅ Simple ticket generated successfully');
+            
+            return {
+                html: simpleTicket.html,
+                pdfBuffer: Buffer.from(simpleTicket.html), // HTML as buffer
+                pdfPath: null, // No PDF file for simple version
+                bookingId: bookingData._id,
+                isSimple: true
+            };
+        }
         
-        // Generate PDF
-        const { pdfBuffer, pdfPath } = await generateTicketPDF(html, bookingData._id);
-        
-        console.log('✅ Ticket generated successfully:', pdfPath);
-        
-        return {
-            html,
-            pdfBuffer,
-            pdfPath,
-            bookingId: bookingData._id
-        };
     } catch (error) {
-        console.error('❌ Error generating ticket:', error);
+        console.error('❌ Error generating ticket (all methods failed):', error);
         throw error;
     }
 };

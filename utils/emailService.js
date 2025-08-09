@@ -183,8 +183,7 @@ export const sendTicketEmail = async (bookingId) => {
                 path: 'show',
                 populate: [
                     { path: 'movie', model: 'Movie' },
-                    { path: 'theatre', model: 'Theatre' },
-                    { path: 'room', model: 'Room' }
+                    { path: 'theatre', model: 'Theatre' }
                 ]
             })
             .populate('user');
