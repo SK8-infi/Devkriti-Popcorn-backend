@@ -131,8 +131,27 @@ export const addShow = async (req, res) =>{
 // API to get all shows from the database
 export const getShows = async (req, res) =>{
     try {
-        const shows = await Show.find({showDateTime: {$gte: new Date()}}).populate('movie').sort({ showDateTime: 1 });
-        res.json({success: true, shows});
+        const { city } = req.query; // Get city from query parameters
+        
+        let query = { showDateTime: { $gte: new Date() } };
+        
+        // First get all shows and populate both movie and theatre
+        const shows = await Show.find(query)
+            .populate('movie')
+            .populate('theatre') // Add theatre population
+            .sort({ showDateTime: 1 });
+        
+        // Filter by city if provided
+        let filteredShows = shows;
+        if (city && city.trim() !== '') {
+            filteredShows = shows.filter(show => 
+                show.theatre && 
+                show.theatre.city && 
+                show.theatre.city.toLowerCase() === city.toLowerCase()
+            );
+        }
+        
+        res.json({success: true, shows: filteredShows});
     } catch (error) {
         console.error(error);
         res.json({ success: false, message: error.message });
@@ -143,13 +162,25 @@ export const getShows = async (req, res) =>{
 export const getShow = async (req, res) =>{
     try {
         const {movieId} = req.params;
+        const { city } = req.query; // Get city from query parameters
+        
         // get all upcoming shows for the movie, and populate theatre
         const shows = await Show.find({movie: movieId, showDateTime: { $gte: new Date() }}).populate('theatre');
+
+        // Filter by city if provided
+        let filteredShows = shows;
+        if (city && city.trim() !== '') {
+            filteredShows = shows.filter(show => 
+                show.theatre && 
+                show.theatre.city && 
+                show.theatre.city.toLowerCase() === city.toLowerCase()
+            );
+        }
 
         const movie = await Movie.findById(movieId);
         const dateTime = {};
 
-        shows.forEach((show) => {
+        filteredShows.forEach((show) => {
             const date = show.showDateTime.toISOString().split("T")[0];
             if(!dateTime[date]){
                 dateTime[date] = []
