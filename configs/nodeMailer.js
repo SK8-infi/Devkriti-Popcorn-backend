@@ -9,15 +9,21 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const sendEmail = async ({ to, subject, body }) => {
+const sendEmail = async ({ to, subject, body, attachments = [] }) => {
     try {
-    const response = await transporter.sendMail({
-            from: `"Popcorn Theater" <${process.env.EMAIL_USER}>`,
-        to,
-        subject,
-        html: body,
-        });
+        const mailOptions = {
+            from: `"Devkriti Popcorn" <${process.env.EMAIL_USER}>`,
+            to,
+            subject,
+            html: body,
+        };
 
+        // Add attachments if provided
+        if (attachments && attachments.length > 0) {
+            mailOptions.attachments = attachments;
+        }
+
+        const response = await transporter.sendMail(mailOptions);
         return response;
     } catch (error) {
         console.error('Email sending failed:', error);
