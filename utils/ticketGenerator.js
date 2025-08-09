@@ -343,8 +343,11 @@ const generateTicketPDF = async (html, bookingId) => {
                 '--disable-accelerated-2d-canvas',
                 '--no-first-run',
                 '--no-zygote',
-                '--disable-gpu'
-            ]
+                '--disable-gpu',
+                '--disable-web-security',
+                '--disable-features=VizDisplayCompositor'
+            ],
+            timeout: 60000 // 60 second timeout
         });
         
         console.log('✅ Puppeteer browser launched successfully');
@@ -379,8 +382,25 @@ const generateTicketPDF = async (html, bookingId) => {
             pdfPath
         };
     } catch (error) {
-        console.error('Error generating PDF:', error);
-        throw error;
+        console.error('❌ Error generating PDF:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
+        
+        // More specific error information
+        if (error.message.includes('Protocol error')) {
+            console.error('🚨 Puppeteer Protocol Error - This often indicates Chrome/Chromium issues in deployment');
+        }
+        if (error.message.includes('Navigation timeout')) {
+            console.error('🚨 Navigation Timeout - Consider increasing timeout or checking page content');
+        }
+        if (error.message.includes('spawn')) {
+            console.error('🚨 Spawn Error - Chrome/Chromium executable may be missing or permissions issue');
+        }
+        
+        throw new Error(`PDF Generation Failed: ${error.message}`);
     }
 };
 
