@@ -215,7 +215,14 @@ export const testTicketAPI = async (req, res) => {
         res.json({
             success: true,
             message: 'Ticket API is working',
-            user: req.user ? { id: req.user._id, role: req.user.role } : null
+            user: req.user ? { id: req.user._id, role: req.user.role } : null,
+            environment: {
+                nodeVersion: process.version,
+                platform: process.platform,
+                arch: process.arch,
+                memory: process.memoryUsage(),
+                uptime: process.uptime()
+            }
         });
     } catch (error) {
         res.status(500).json({

@@ -195,7 +195,9 @@ export const sendTicketEmail = async (bookingId) => {
         }
 
         // Generate ticket
+        console.log('🎫 Generating ticket PDF...');
         const ticket = await generateTicket(booking);
+        console.log('✅ Ticket PDF generated successfully');
         
         // Create email body
         const emailBody = `
@@ -209,10 +211,10 @@ export const sendTicketEmail = async (bookingId) => {
                         <h4 style="margin-top: 0; color: #333;">Booking Details:</h4>
                         <p><strong>Movie:</strong> ${booking.show.movie.title}</p>
                         <p><strong>Theatre:</strong> ${booking.show.theatre?.name || 'Unknown Theatre'}</p>
-                        <p><strong>Date:</strong> ${new Date(booking.show.date).toLocaleDateString('en-IN')}</p>
-                        <p><strong>Time:</strong> ${new Date(booking.show.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>
-                        <p><strong>Seat:</strong> ${booking.seatNumber}</p>
-                        <p><strong>Amount Paid:</strong> ₹${booking.price}</p>
+                        <p><strong>Date:</strong> ${new Date(booking.show.showDateTime).toLocaleDateString('en-IN')}</p>
+                        <p><strong>Time:</strong> ${new Date(booking.show.showDateTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p><strong>Seats:</strong> ${booking.bookedSeats ? booking.bookedSeats.join(', ') : 'N/A'}</p>
+                        <p><strong>Amount Paid:</strong> ₹${booking.amount}</p>
                         <p><strong>Booking ID:</strong> ${booking._id}</p>
                     </div>
                     
@@ -234,6 +236,7 @@ export const sendTicketEmail = async (bookingId) => {
         `;
 
         // Send email with PDF attachment
+        console.log('📧 Sending email with ticket attachment...');
         await sendEmail({
             to: booking.user.email,
             subject: `🎬 Your Movie Ticket: "${booking.show.movie.title}"`,
@@ -246,6 +249,7 @@ export const sendTicketEmail = async (bookingId) => {
                 }
             ]
         });
+        console.log('✅ Email sent successfully');
 
         console.log('✅ Ticket email sent successfully to:', booking.user.email);
         return { success: true };
