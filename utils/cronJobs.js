@@ -1,5 +1,6 @@
 import { sendShowReminders } from './emailService.js';
 import Booking from '../models/Booking.js';
+import Show from '../models/Show.js';
 import { cleanupOldTickets } from './ticketGenerator.js';
 
 // Store cron intervals
@@ -99,14 +100,53 @@ const cleanupExpiredBookings = async () => {
     try {
         const thirtyMinutesAgo = new Date(Date.now() - (30 * 60 * 1000));
         
-        // Find and delete unpaid bookings older than 30 minutes
+        // Find expired unpaid bookings first to release their seats
+        const expiredBookings = await Booking.find({
+            isPaid: false,
+            createdAt: { $lt: thirtyMinutesAgo }
+        });
+        
+        if (expiredBookings.length > 0) {
+            console.log(`🧹 Found ${expiredBookings.length} expired unpaid bookings, releasing seats...`);
+            
+            // Group bookings by show for efficient seat release
+            const showGroups = {};
+            expiredBookings.forEach(booking => {
+                const showId = booking.show.toString();
+                if (!showGroups[showId]) {
+                    showGroups[showId] = [];
+                }
+                showGroups[showId].push(...(booking.bookedSeats || []));
+            });
+            
+            // Release seats for each show
+            for (const [showId, seats] of Object.entries(showGroups)) {
+                try {
+                    const show = await Show.findById(showId);
+                    if (show) {
+                        seats.forEach(seat => {
+                            if (show.occupiedSeats && show.occupiedSeats[seat]) {
+                                delete show.occupiedSeats[seat];
+                            }
+                        });
+                        show.markModified('occupiedSeats');
+                        await show.save();
+                        console.log(`🪑 Released ${seats.length} seats from show ${showId}`);
+                    }
+                } catch (seatError) {
+                    console.error(`Error releasing seats for show ${showId}:`, seatError);
+                }
+            }
+        }
+        
+        // Now delete the expired bookings
         const result = await Booking.deleteMany({
             isPaid: false,
             createdAt: { $lt: thirtyMinutesAgo }
         });
         
         if (result.deletedCount > 0) {
-            console.log(`🧹 Cleaned up ${result.deletedCount} expired unpaid bookings`);
+            console.log(`🧹 Cleaned up ${result.deletedCount} expired unpaid bookings and released their seats`);
         } else {
             console.log('🧹 No expired bookings found to clean up');
         }
@@ -114,6 +154,7 @@ const cleanupExpiredBookings = async () => {
         return {
             success: true,
             deletedCount: result.deletedCount,
+            seatsReleased: expiredBookings.reduce((total, booking) => total + (booking.bookedSeats?.length || 0), 0),
             timestamp: new Date().toISOString()
         };
     } catch (error) {

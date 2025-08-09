@@ -14,6 +14,7 @@ import authRouter from './routes/authRoutes.js';
 import cronRouter from './routes/cronRoutes.js';
 import reviewRouter from './routes/reviewRoutes.js';
 import ticketRouter from './routes/ticketRoutes.js';
+import cancellationRouter from './routes/cancellationRoutes.js';
 import { stripeWebhooks } from './controllers/stripeWebhooks.js';
 import { startMovieFetcher, fetchAndCacheLatestMovies } from './controllers/movieController.js';
 import { startCronJobs } from './utils/cronJobs.js';
@@ -85,5 +86,6 @@ app.use('/api/movies', movieRouter);
 app.use('/api/cron', cronRouter);
 app.use('/api/reviews', reviewRouter);
 app.use('/api/tickets', ticketRouter);
+app.use('/api/cancellation', cancellationRouter);
 
 app.listen(port, ()=> {}); 
