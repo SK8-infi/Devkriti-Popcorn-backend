@@ -17,6 +17,7 @@ const userRouter = express.Router();
 
 userRouter.get('/bookings', authenticateToken, getUserBookings);
 userRouter.post('/favorites', authenticateToken, updateFavorite);
+userRouter.post('/update-favorite', authenticateToken, updateFavorite); // Alternative route for MovieDetails
 userRouter.get('/favorites', authenticateToken, getFavorites);
 userRouter.put('/city', authenticateToken, updateUserCity);
 userRouter.put('/city/public', updateUserCityPublic);

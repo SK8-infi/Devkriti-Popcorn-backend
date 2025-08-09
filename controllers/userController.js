@@ -44,7 +44,7 @@ export const updateFavorite = async (req, res)=>{
 
         res.json({success: true, message: "Favorite movies updated" })
     } catch (error) {
-        console.error(error.message);
+        console.error('Error in updateFavorite:', error.message);
         res.json({ success: false, message: error.message });
     }
 }
