@@ -401,7 +401,8 @@ export const getMyBookings = async (req, res) => {
             const processedBooking = {
                 ...booking.toObject(),
                 show: {
-                    ...show,
+                    ...show.toObject(),
+                    movie: show?.movie || null,
                     theatreName: show?.theatre?.name || 'Unknown Theatre',
                     theatreCity: show?.theatre?.city || '',
                     time: show?.showDateTime || null,

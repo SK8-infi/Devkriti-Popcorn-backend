@@ -260,13 +260,30 @@ const ticketTemplate = `
 // Generate QR code for booking
 const generateQRCode = async (bookingData) => {
     try {
+        // Try different possible field names for date/time
+        const dateTimeField = bookingData.show?.showDateTime || 
+                             bookingData.show?.time || 
+                             bookingData.show?.dateTime;
+        
+        let showDate = 'Date not available';
+        let showTime = 'Time not available';
+        
+        if (dateTimeField) {
+            const showDateTime = new Date(dateTimeField);
+            if (!isNaN(showDateTime.getTime())) {
+                showDate = showDateTime.toLocaleDateString('en-IN');
+                showTime = showDateTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+            }
+        }
+        
         const qrData = JSON.stringify({
             bookingId: bookingData._id,
             movieTitle: bookingData.show?.movie?.title,
             theatreName: bookingData.show?.theatre?.name,
-            showDate: bookingData.show?.date,
-            showTime: bookingData.show?.time,
-            seatNumber: bookingData.seatNumber,
+            showDate: showDate,
+            showTime: showTime,
+            seats: bookingData.bookedSeats,
+            amount: bookingData.amount,
             userId: bookingData.user?._id
         });
         
@@ -291,18 +308,51 @@ const generateTicketHTML = async (bookingData) => {
     try {
         const qrCodeDataUrl = await generateQRCode(bookingData);
         
-        // Format date and time
-        const showDate = new Date(bookingData.show.date).toLocaleDateString('en-IN', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
+        // Check if showDateTime exists and format it properly
+        let showDate = 'Date not available';
+        let showTime = 'Time not available';
         
-        const showTime = new Date(bookingData.show.time).toLocaleTimeString('en-IN', {
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+        // Debug: Log the exact structure to understand the fields
+        console.log('🔍 DEBUG - Booking data keys:', Object.keys(bookingData));
+        console.log('🔍 DEBUG - Show data keys:', Object.keys(bookingData.show || {}));
+        console.log('🔍 DEBUG - Show object:', JSON.stringify(bookingData.show, null, 2));
+        
+        // Try different possible field names and structures
+        const dateTimeField = bookingData.show?.showDateTime || 
+                             bookingData.show?.time || 
+                             bookingData.show?.dateTime;
+        
+        if (dateTimeField) {
+            const showDateTime = new Date(dateTimeField);
+            if (!isNaN(showDateTime.getTime())) {
+                showDate = showDateTime.toLocaleDateString('en-IN', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                
+                showTime = showDateTime.toLocaleTimeString('en-IN', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+        }
+        
+        // Get room information for format
+        let roomInfo = null;
+        let format = 'Standard';
+        let roomName = 'Unknown Room';
+        
+        if (bookingData.show?.theatre?.rooms && bookingData.show?.room) {
+            roomInfo = bookingData.show.theatre.rooms.find(room => 
+                room._id.toString() === bookingData.show.room.toString()
+            );
+            if (roomInfo) {
+                format = roomInfo.type || 'Standard';
+                roomName = roomInfo.name || 'Unknown Room';
+            }
+        }
         
         // Prepare template data
         const templateData = {
@@ -312,10 +362,12 @@ const generateTicketHTML = async (bookingData) => {
             showDate: showDate,
             showTime: showTime,
             language: bookingData.show?.language || 'Unknown',
-            format: bookingData.show?.format || 'Standard',
-            roomName: bookingData.show?.room?.name || 'Unknown Room',
-            seatNumber: bookingData.seatNumber,
-            price: bookingData.price || 0,
+            format: format,
+            roomName: roomName,
+            seatNumber: bookingData.bookedSeats && bookingData.bookedSeats.length > 0 
+                       ? bookingData.bookedSeats.join(', ') 
+                       : 'N/A',
+            price: bookingData.amount || 0,
             qrCodeDataUrl: qrCodeDataUrl
         };
         
