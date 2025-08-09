@@ -161,9 +161,16 @@ export const createBooking = async (req, res)=>{
 
         // Use the totalAmount from frontend if provided, otherwise calculate
         let finalAmount = totalAmount;
-        if (!finalAmount) {
-            // Fallback calculation using the old showPrice if totalAmount not provided
-            finalAmount = showData.showPrice * selectedSeats.length;
+        if (!finalAmount || isNaN(finalAmount)) {
+            // Fallback calculation using silver price if totalAmount not provided or invalid
+            const silverPrice = Number(showData.silverPrice) || 100;
+            finalAmount = silverPrice * selectedSeats.length;
+        }
+
+        // Validate amount is a valid number
+        finalAmount = Number(finalAmount);
+        if (isNaN(finalAmount) || finalAmount <= 0) {
+            return res.json({success: false, message: "Invalid booking amount. Please try again."});
         }
 
         // Validate minimum amount for Stripe

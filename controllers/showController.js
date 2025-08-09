@@ -21,7 +21,7 @@ export const getNowPlayingMovies = async (req, res)=>{
 // API to add a new show to the database
 export const addShow = async (req, res) =>{
     try {
-        const {movieId, showsInput, normalPrice, vipPrice, theatreId, roomId, language} = req.body
+        const {movieId, showsInput, silverPrice, goldPrice, premiumPrice, theatreId, roomId, language} = req.body
 
         // Validate theatre exists
         const Theatre = (await import('../models/Theatre.js')).default;
@@ -103,8 +103,9 @@ export const addShow = async (req, res) =>{
                     movie: movieId,
                     theatre: theatreId,
                     showDateTime: new Date(dateTimeString),
-                    normalPrice,
-                    vipPrice,
+                    silverPrice,
+                    goldPrice,
+                    premiumPrice,
                     language,
                     occupiedSeats: {},
                     room: roomId
@@ -198,8 +199,10 @@ export const getShow = async (req, res) =>{
                 theatre: show.theatre?._id ? String(show.theatre._id) : String(show.theatre),
                 theatreName: show.theatre?.name || '',
                 theatreCity: show.theatre?.city || '',
-                normalPrice: show.normalPrice,
-                vipPrice: show.vipPrice,
+                theatreAddress: show.theatre?.address || '',
+                silverPrice: show.silverPrice,
+                goldPrice: show.goldPrice,
+                premiumPrice: show.premiumPrice,
                 language: show.language,
                 format: roomInfo?.type || 'Normal', // Use room type as format
                 roomName: roomInfo?.name || 'Unknown Room'
