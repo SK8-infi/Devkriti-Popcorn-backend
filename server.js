@@ -13,6 +13,7 @@ import movieRouter from './routes/movieRoutes.js';
 import authRouter from './routes/authRoutes.js';
 import cronRouter from './routes/cronRoutes.js';
 import reviewRouter from './routes/reviewRoutes.js';
+import ticketRouter from './routes/ticketRoutes.js';
 import { stripeWebhooks } from './controllers/stripeWebhooks.js';
 import { startMovieFetcher, fetchAndCacheLatestMovies } from './controllers/movieController.js';
 import { startCronJobs } from './utils/cronJobs.js';
@@ -66,7 +67,7 @@ fetchAndCacheLatestMovies();
 
 // Start custom cron jobs (replaces Inngest scheduled functions)
 startCronJobs();
-console.log('✅ Cron jobs started: Show reminders (8h), Booking cleanup (5m)');
+console.log('✅ Cron jobs started: Show reminders (8h), Booking cleanup (5m), Ticket cleanup (24h)');
 
 // Stripe Webhooks Route
 app.use('/api/stripe', express.raw({type: 'application/json'}), stripeWebhooks);
@@ -86,5 +87,6 @@ app.use('/api/user', userRouter);
 app.use('/api/movies', movieRouter);
 app.use('/api/cron', cronRouter);
 app.use('/api/reviews', reviewRouter);
+app.use('/api/tickets', ticketRouter);
 
 app.listen(port, ()=> {}); 

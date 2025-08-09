@@ -1,5 +1,6 @@
 import { sendShowReminders } from './emailService.js';
 import Booking from '../models/Booking.js';
+import { cleanupOldTickets } from './ticketGenerator.js';
 
 // Store cron intervals
 const cronIntervals = new Map();
@@ -11,6 +12,9 @@ export const startCronJobs = () => {
     
     // Start booking cleanup cron job (every 5 minutes)
     startBookingCleanupCron();
+    
+    // Start ticket cleanup cron job (every 24 hours)
+    startTicketCleanupCron();
 };
 
 // Stop all cron jobs
@@ -61,6 +65,29 @@ const startBookingCleanupCron = () => {
             await cleanupExpiredBookings();
         } catch (error) {
             console.error('Error in scheduled booking cleanup:', error);
+        }
+    }, interval);
+    
+    cronIntervals.set(jobName, intervalId);
+};
+
+// Ticket cleanup cron job (runs every 24 hours)
+const startTicketCleanupCron = () => {
+    const jobName = 'ticketCleanup';
+    const interval = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+    
+    // Run immediately on startup
+    console.log('🗑️ Starting initial ticket cleanup...');
+    cleanupOldTickets().catch(error => {
+        console.error('Error in initial ticket cleanup run:', error);
+    });
+    
+    // Set up recurring job
+    const intervalId = setInterval(async () => {
+        try {
+            await cleanupOldTickets();
+        } catch (error) {
+            console.error('Error in scheduled ticket cleanup:', error);
         }
     }, interval);
     
