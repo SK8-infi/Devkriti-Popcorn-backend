@@ -2,6 +2,7 @@ import sendEmail from '../configs/nodeMailer.js';
 import Booking from '../models/Booking.js';
 import Show from '../models/Show.js';
 import User from '../models/User.js';
+import { generateTicket } from './ticketGenerator.js';
 
 // Send booking confirmation email
 export const sendBookingConfirmationEmail = async (bookingId) => {
@@ -169,5 +170,88 @@ export const sendNewShowNotifications = async (movieTitle) => {
     } catch (error) {
         console.error('Error sending new show notifications:', error);
         return { sent: 0, failed: 0 };
+    }
+};
+
+// Send ticket email with PDF attachment
+export const sendTicketEmail = async (bookingId) => {
+    try {
+        console.log('📧 Sending ticket email for booking:', bookingId);
+        
+        const booking = await Booking.findById(bookingId)
+            .populate({
+                path: 'show',
+                populate: [
+                    { path: 'movie', model: 'Movie' },
+                    { path: 'theatre', model: 'Theatre' },
+                    { path: 'room', model: 'Room' }
+                ]
+            })
+            .populate('user');
+
+        if (!booking || !booking.user || !booking.show) {
+            console.error('Booking, user, or show not found for ticket email');
+            return { success: false, error: 'Booking data not found' };
+        }
+
+        // Generate ticket
+        const ticket = await generateTicket(booking);
+        
+        // Create email body
+        const emailBody = `
+            <div style="font-family: Arial, sans-serif; line-height: 1.5; padding: 20px; background-color: #f5f5f5;">
+                <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <h2 style="color: #F84565; text-align: center;">🎬 Your Movie Ticket</h2>
+                    <h3>Hi ${booking.user.name},</h3>
+                    <p>Your booking for <strong style="color: #F84565;">"${booking.show.movie.title}"</strong> is confirmed!</p>
+                    
+                    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+                        <h4 style="margin-top: 0; color: #333;">Booking Details:</h4>
+                        <p><strong>Movie:</strong> ${booking.show.movie.title}</p>
+                        <p><strong>Theatre:</strong> ${booking.show.theatre?.name || 'Unknown Theatre'}</p>
+                        <p><strong>Date:</strong> ${new Date(booking.show.date).toLocaleDateString('en-IN')}</p>
+                        <p><strong>Time:</strong> ${new Date(booking.show.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p><strong>Seat:</strong> ${booking.seatNumber}</p>
+                        <p><strong>Amount Paid:</strong> ₹${booking.price}</p>
+                        <p><strong>Booking ID:</strong> ${booking._id}</p>
+                    </div>
+                    
+                    <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; color: #856404;">
+                        <h4 style="margin-top: 0;">📋 Important Information:</h4>
+                        <ul style="margin: 10px 0; padding-left: 20px;">
+                            <li>Please arrive 15 minutes before showtime</li>
+                            <li>Valid ID required for entry</li>
+                            <li>Show this ticket (digital or printed) at the entrance</li>
+                            <li>Mobile phones must be silent during the show</li>
+                            <li>No refunds or exchanges</li>
+                        </ul>
+                    </div>
+                    
+                    <p style="text-align: center; color: #666;">Enjoy the show! 🍿</p>
+                    <p style="text-align: center; color: #666;">— Devkriti Popcorn Team</p>
+                </div>
+            </div>
+        `;
+
+        // Send email with PDF attachment
+        await sendEmail({
+            to: booking.user.email,
+            subject: `🎬 Your Movie Ticket: "${booking.show.movie.title}"`,
+            body: emailBody,
+            attachments: [
+                {
+                    filename: `ticket-${booking._id}.pdf`,
+                    content: ticket.pdfBuffer,
+                    contentType: 'application/pdf'
+                }
+            ]
+        });
+
+        console.log('✅ Ticket email sent successfully to:', booking.user.email);
+        return { success: true };
+
+    } catch (error) {
+        console.error('❌ Error sending ticket email:', error);
+        return { success: false, error: error.message };
     }
 }; 
