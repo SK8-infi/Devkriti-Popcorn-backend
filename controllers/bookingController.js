@@ -114,15 +114,27 @@ const updateBookingToPaid = async (bookingId) => {
     try {
         const booking = await Booking.findById(bookingId);
         if (booking) {
+            // Update booking status
             booking.isPaid = true;
             booking.status = 'confirmed';
             booking.paymentDate = new Date();
             await booking.save();
+
+            // Seats are already marked as occupied during booking creation
+            // Just log the payment confirmation
+            console.log(`💳 Payment confirmed - seats remain occupied for booking ${bookingId}:`, {
+                showId: booking.show,
+                seats: booking.bookedSeats,
+                userId: booking.user.toString(),
+                status: 'permanently_occupied'
+            });
+
             return true; // Indicate success
         } else {
             return false; // Indicate failure
         }
     } catch (error) {
+        console.error('Error updating booking to paid:', error);
         return false; // Indicate failure
     }
 }
@@ -135,9 +147,15 @@ const releaseSeatsFromBooking = async (bookingId) => {
             await releaseSeats(booking.show, booking.bookedSeats);
             booking.status = 'payment_failed';
             await booking.save();
+            
+            console.log(`🚫 Payment failed - seats released for booking ${bookingId}:`, {
+                showId: booking.show,
+                seats: booking.bookedSeats,
+                reason: 'payment_failed'
+            });
         }
     } catch (error) {
-        // Error releasing seats
+        console.error('Error releasing seats from booking:', error);
     }
 }
 
@@ -188,12 +206,20 @@ export const createBooking = async (req, res)=>{
 
 
 
-        selectedSeats.map((seat)=>{
+        // Mark seats as temporarily occupied during booking creation (30-min buffer)
+        selectedSeats.forEach((seat) => {
             showData.occupiedSeats[seat] = userId;
-        })
+        });
+
+        console.log(`🪑 Marking seats as temporarily occupied for booking ${booking._id}:`, {
+            showId,
+            seats: selectedSeats,
+            userId: userId.toString(),
+            status: 'pending_payment',
+            totalOccupied: Object.keys(showData.occupiedSeats).length
+        });
 
         showData.markModified('occupiedSeats');
-
         await showData.save();
 
          // Stripe Gateway Initialize
@@ -255,16 +281,95 @@ export const createBooking = async (req, res)=>{
 
 export const getOccupiedSeats = async (req, res)=>{
     try {
+        const { showId } = req.params;
+        const showData = await Show.findById(showId);
+
+        if (!showData) {
+            return res.json({ success: false, message: 'Show not found' });
+        }
+
+        if (!showData.occupiedSeats || typeof showData.occupiedSeats !== 'object') {
+            showData.occupiedSeats = {};
+        }
+
+        // Get all active bookings for this show (paid + pending within 30-min window)
+        const now = new Date();
+        const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
+
+        const activeBookings = await Booking.find({ 
+            show: showId,
+            $or: [
+                // Paid bookings that are not cancelled
+                { 
+                    isPaid: true,
+                    $or: [
+                        { isCancelled: { $ne: true } },
+                        { isCancelled: { $exists: false } }
+                    ]
+                },
+                // Pending bookings within 30-minute window
+                {
+                    isPaid: false,
+                    status: 'pending',
+                    createdAt: { $gt: thirtyMinutesAgo },
+                    $or: [
+                        { isCancelled: { $ne: true } },
+                        { isCancelled: { $exists: false } }
+                    ]
+                }
+            ]
+        });
+
+        // Build the correct occupied seats list from active bookings
+        const correctlyOccupiedSeats = new Set();
+        activeBookings.forEach(booking => {
+            (booking.bookedSeats || []).forEach(seat => {
+                correctlyOccupiedSeats.add(seat);
+            });
+        });
+
+        // Get current occupied seats from show document
+        const currentOccupiedSeats = Object.keys(showData.occupiedSeats || {});
         
-        const {showId} = req.params;
-        const showData = await Show.findById(showId)
+        // Check if show document needs updating
+        let needsUpdate = false;
+        const newOccupiedSeats = {};
 
-        const occupiedSeats = Object.keys(showData.occupiedSeats)
+        // Add all correctly occupied seats to the new map
+        for (const seat of correctlyOccupiedSeats) {
+            // Find which user has this seat
+            const booking = activeBookings.find(b => (b.bookedSeats || []).includes(seat));
+            if (booking) {
+                newOccupiedSeats[seat] = booking.user;
+            }
+        }
 
-        res.json({success: true, occupiedSeats})
+        // Check if the current state differs from what it should be
+        const currentSet = new Set(currentOccupiedSeats);
+        if (currentSet.size !== correctlyOccupiedSeats.size || 
+            !Array.from(correctlyOccupiedSeats).every(seat => currentSet.has(seat))) {
+            needsUpdate = true;
+        }
+
+        // Update show document if needed
+        if (needsUpdate) {
+            console.log(`🔄 Syncing occupied seats for show ${showId}:`, {
+                before: currentOccupiedSeats.length,
+                after: Array.from(correctlyOccupiedSeats).length,
+                seats: Array.from(correctlyOccupiedSeats)
+            });
+            
+            showData.occupiedSeats = newOccupiedSeats;
+            showData.markModified('occupiedSeats');
+            await showData.save();
+        }
+
+        const occupiedSeats = Array.from(correctlyOccupiedSeats);
+
+        return res.json({ success: true, occupiedSeats });
 
     } catch (error) {
-        res.json({success: false, message: error.message})
+        return res.json({ success: false, message: error.message });
     }
 }
 

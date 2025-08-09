@@ -257,4 +257,82 @@ export const sendTicketEmail = async (bookingId) => {
         console.error('❌ Error sending ticket email:', error);
         return { success: false, error: error.message };
     }
+};
+
+// Send cancellation confirmation email
+export const sendCancellationEmail = async (booking) => {
+    try {
+        console.log('📧 Sending cancellation email for booking:', booking._id);
+        
+        if (!booking || !booking.user || !booking.show) {
+            console.error('Booking, user, or show not found for cancellation email');
+            return { success: false, error: 'Booking data not found' };
+        }
+
+        const refundText = booking.refundAmount > 0 
+            ? `₹${booking.refundAmount} (${booking.refundPercentage}% of original amount)`
+            : 'No refund applicable';
+            
+        const emailBody = `
+            <div style="font-family: Arial, sans-serif; line-height: 1.5; padding: 20px; background-color: #f5f5f5;">
+                <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <h2 style="color: #dc3545; text-align: center;">🚫 Booking Cancelled</h2>
+                    <h3>Hi ${booking.user.name},</h3>
+                    <p>Your booking for <strong style="color: #dc3545;">"${booking.show.movie.title}"</strong> has been successfully cancelled.</p>
+                    
+                    <div style="background-color: #fff3cd; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ffc107;">
+                        <h4 style="margin-top: 0; color: #856404;">📋 Cancellation Details:</h4>
+                        <p><strong>Movie:</strong> ${booking.show.movie.title}</p>
+                        <p><strong>Theatre:</strong> ${booking.show.theatre?.name || 'Unknown Theatre'}</p>
+                        <p><strong>Show Date & Time:</strong> ${new Date(booking.show.showDateTime).toLocaleString('en-IN')}</p>
+                        <p><strong>Cancelled Seats:</strong> ${booking.bookedSeats.join(', ')}</p>
+                        <p><strong>Original Amount:</strong> ₹${booking.amount}</p>
+                        <p><strong>Refund Amount:</strong> ${refundText}</p>
+                        <p><strong>Cancellation Date:</strong> ${new Date(booking.cancellationDate).toLocaleString('en-IN')}</p>
+                        <p><strong>Booking ID:</strong> ${booking._id}</p>
+                        ${booking.cancellationReason ? `<p><strong>Reason:</strong> ${booking.cancellationReason}</p>` : ''}
+                    </div>
+                    
+                    ${booking.refundAmount > 0 ? `
+                    <div style="background-color: #d1ecf1; padding: 15px; border-radius: 5px; margin: 20px 0; color: #0c5460;">
+                        <h4 style="margin-top: 0;">💰 Refund Information:</h4>
+                        <p>Your refund of <strong>₹${booking.refundAmount}</strong> is being processed and will be credited to your original payment method within 5-7 business days.</p>
+                        <p><strong>Refund Status:</strong> ${booking.refundStatus}</p>
+                    </div>
+                    ` : `
+                    <div style="background-color: #f8d7da; padding: 15px; border-radius: 5px; margin: 20px 0; color: #721c24;">
+                        <h4 style="margin-top: 0;">ℹ️ Refund Information:</h4>
+                        <p>According to our cancellation policy, no refund is applicable for cancellations made less than 2 hours before the show time.</p>
+                    </div>
+                    `}
+                    
+                    <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; color: #6c757d;">
+                        <h4 style="margin-top: 0;">📋 Cancellation Policy Reminder:</h4>
+                        <ul style="margin: 10px 0; padding-left: 20px;">
+                            <li><strong>24+ hours before show:</strong> 80% refund</li>
+                            <li><strong>12-24 hours before show:</strong> 50% refund</li>
+                            <li><strong>2-12 hours before show:</strong> 25% refund</li>
+                            <li><strong>Less than 2 hours:</strong> No refund</li>
+                        </ul>
+                    </div>
+                    
+                    <p style="text-align: center; color: #666;">We're sorry to see you cancel. We hope to serve you again soon! 🎬</p>
+                    <p style="text-align: center; color: #666;">— Devkriti Popcorn Team</p>
+                </div>
+            </div>
+        `;
+
+        await sendEmail({
+            to: booking.user.email,
+            subject: `🚫 Booking Cancelled: "${booking.show.movie.title}"`,
+            body: emailBody
+        });
+
+        console.log('✅ Cancellation email sent successfully to:', booking.user.email);
+        return { success: true };
+
+    } catch (error) {
+        console.error('❌ Error sending cancellation email:', error);
+        return { success: false, error: error.message };
+    }
 }; 
