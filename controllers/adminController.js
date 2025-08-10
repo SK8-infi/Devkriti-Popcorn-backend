@@ -293,7 +293,16 @@ export const deleteRoomFromTheatre = async (req, res) => {
 // API to get all theatres
 export const getAllTheatres = async (req, res) => {
     try {
-        const theatres = await Theatre.find({}).populate('admin', 'name email googleId role');
+        const { city } = req.query; // Get city from query parameters
+        
+        let query = {};
+        
+        // Filter by city if provided
+        if (city && city.trim() !== '') {
+            query.city = { $regex: new RegExp(city.trim(), 'i') }; // Case-insensitive search
+        }
+        
+        const theatres = await Theatre.find(query).populate('admin', 'name email googleId role');
         res.json({ success: true, theatres });
     } catch (error) {
         console.error('getAllTheatres error:', error);
