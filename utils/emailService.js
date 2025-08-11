@@ -3,6 +3,7 @@ import Booking from '../models/Booking.js';
 import Show from '../models/Show.js';
 import User from '../models/User.js';
 import { generateTicket } from './ticketGenerator.js';
+import { createShowReminderNotification } from './notificationService.js';
 
 // Send booking confirmation email
 export const sendBookingConfirmationEmail = async (bookingId) => {
@@ -104,6 +105,9 @@ export const sendShowReminders = async () => {
                         subject: `Reminder: Your movie "${show.movie.title}" starts soon!`,
                         body: emailBody
                     });
+
+                    // Create in-app notification
+                    await createShowReminderNotification(user._id, show.movie.title, show.showDateTime);
 
                     remindersSent++;
                 } catch (error) {

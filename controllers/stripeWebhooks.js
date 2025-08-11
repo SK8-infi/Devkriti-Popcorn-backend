@@ -2,6 +2,7 @@ import stripe from "stripe";
 import Booking from '../models/Booking.js'
 import { clearBookingTimeout } from '../utils/bookingTimeout.js';
 import { sendTicketEmail } from '../utils/emailService.js';
+import { createPaymentSuccessNotification } from '../utils/notificationService.js';
 
 export const stripeWebhooks = async (request, response)=>{
     const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
@@ -26,13 +27,29 @@ export const stripeWebhooks = async (request, response)=>{
                 const session = sessionList.data[0];
                 const { bookingId } = session.metadata;
 
-                await Booking.findByIdAndUpdate(bookingId, {
+                const booking = await Booking.findByIdAndUpdate(bookingId, {
                     isPaid: true,
                     paymentLink: ""
-                })
+                }).populate({
+                    path: 'show',
+                    populate: { path: 'movie', model: 'Movie' }
+                }).populate('user');
 
                 // Clear booking timeout (payment completed)
                 clearBookingTimeout(bookingId);
+
+                // Create payment success notification
+                if (booking && booking.user && booking.show && booking.show.movie) {
+                    try {
+                        await createPaymentSuccessNotification(
+                            booking.user._id,
+                            booking.show.movie.title,
+                            booking.amount
+                        );
+                    } catch (notificationError) {
+                        console.error('Error creating payment success notification:', notificationError);
+                    }
+                }
 
                 // Send ticket email with PDF attachment
                 sendTicketEmail(bookingId).catch(error => {

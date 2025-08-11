@@ -1,6 +1,7 @@
 import Booking from '../models/Booking.js';
 import Show from '../models/Show.js';
 import { sendCancellationEmail } from '../utils/emailService.js';
+import { createCancellationNotification } from '../utils/notificationService.js';
 
 // Calculate refund based on time before show
 const calculateRefund = (showDateTime, originalAmount) => {
@@ -191,6 +192,18 @@ export const cancelBooking = async (req, res) => {
         } catch (emailError) {
             console.error('❌ Error sending cancellation email:', emailError);
             // Don't fail the cancellation if email fails
+        }
+
+        // Create cancellation notification
+        try {
+            await createCancellationNotification(
+                booking.user,
+                booking.show.movie.title,
+                booking.refundAmount
+            );
+        } catch (notificationError) {
+            console.error('❌ Error creating cancellation notification:', notificationError);
+            // Don't fail the cancellation if notification fails
         }
 
         console.log(`✅ Booking ${bookingId} cancelled successfully. Refund: ₹${refundInfo.refundAmount}`);
