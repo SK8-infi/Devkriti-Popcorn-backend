@@ -426,8 +426,7 @@ export const getTheatreAdminInfo = async (req, res) => {
     }
 };
 
-// API to get theatre analytics
-export const getTheatreAnalytics = async (req, res) => {
+
     try {
         const userId = req.user._id;
         const { period = 'month' } = req.query;
@@ -652,11 +651,7 @@ export const getTheatreAnalytics = async (req, res) => {
             period 
         });
         
-    } catch (error) {
-        console.error('getTheatreAnalytics error:', error);
-        res.status(500).json({ success: false, message: error.message });
-    }
-};
+
 
 // API to manually trigger booking cleanup (for testing)
 export const triggerBookingCleanupAPI = async (req, res) => {
