@@ -2,6 +2,7 @@ import { sendShowReminders } from './emailService.js';
 import Booking from '../models/Booking.js';
 import Show from '../models/Show.js';
 import { cleanupOldTickets } from './ticketGenerator.js';
+import { cleanupOldNotifications } from './notificationService.js';
 
 // Store cron intervals
 const cronIntervals = new Map();
@@ -16,6 +17,9 @@ export const startCronJobs = () => {
     
     // Start ticket cleanup cron job (every 24 hours)
     startTicketCleanupCron();
+    
+    // Start notification cleanup cron job (every 24 hours)
+    startNotificationCleanupCron();
 };
 
 // Stop all cron jobs
@@ -89,6 +93,29 @@ const startTicketCleanupCron = () => {
             await cleanupOldTickets();
         } catch (error) {
             console.error('Error in scheduled ticket cleanup:', error);
+        }
+    }, interval);
+    
+    cronIntervals.set(jobName, intervalId);
+};
+
+// Notification cleanup cron job (runs every 24 hours)
+const startNotificationCleanupCron = () => {
+    const jobName = 'notificationCleanup';
+    const interval = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+    
+    // Run immediately on startup
+    console.log('🗑️ Starting initial notification cleanup...');
+    cleanupOldNotifications().catch(error => {
+        console.error('Error in initial notification cleanup run:', error);
+    });
+    
+    // Set up recurring job
+    const intervalId = setInterval(async () => {
+        try {
+            await cleanupOldNotifications();
+        } catch (error) {
+            console.error('Error in scheduled notification cleanup:', error);
         }
     }, interval);
     

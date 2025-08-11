@@ -17,6 +17,7 @@ import movieReviewRouter from './routes/movieReviewRoutes.js';
 import ticketRouter from './routes/ticketRoutes.js';
 import cancellationRouter from './routes/cancellationRoutes.js';
 import contactRouter from './routes/contactRoutes.js';
+import notificationRouter from './routes/notificationRoutes.js';
 import { stripeWebhooks } from './controllers/stripeWebhooks.js';
 import { startMovieFetcher, fetchAndCacheLatestMovies } from './controllers/movieController.js';
 import { startCronJobs } from './utils/cronJobs.js';
@@ -90,6 +91,7 @@ app.use('/api/reviews', reviewRouter);
 app.use('/api/movie-reviews', movieReviewRouter);
 app.use('/api/tickets', ticketRouter);
 app.use('/api/cancellation', cancellationRouter);
+app.use('/api/notifications', notificationRouter);
 app.use('/api', contactRouter);
 
 app.listen(port, ()=> {}); 

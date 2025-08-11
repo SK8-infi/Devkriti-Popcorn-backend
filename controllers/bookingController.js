@@ -2,6 +2,7 @@ import Booking from "../models/Booking.js";
 import Show from "../models/Show.js"
 import stripe from 'stripe'
 import { setBookingTimeout } from '../utils/bookingTimeout.js';
+import { createBookingNotification, createPaymentSuccessNotification, createPaymentFailureNotification } from '../utils/notificationService.js';
 
 
 // Function to check availability of selected seats for a movie
@@ -269,10 +270,23 @@ export const createBooking = async (req, res)=>{
          booking.paymentLink = session.url
          await booking.save()
 
+         // Create booking notification
+         try {
+             await createBookingNotification(
+                 booking._id,
+                 userId,
+                 showData.movie.title,
+                 showData.showDateTime,
+                 selectedSeats
+             );
+         } catch (notificationError) {
+             console.error('Error creating booking notification:', notificationError);
+         }
+
          // Set custom timeout for booking payment check (10 minutes)
          setBookingTimeout(booking._id.toString());
 
-                   res.json({success: true, url: session.url})
+         res.json({success: true, url: session.url})
 
     } catch (error) {
         res.json({success: false, message: error.message})

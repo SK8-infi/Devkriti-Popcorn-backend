@@ -2,6 +2,8 @@ import axios from "axios"
 import Movie from "../models/Movie.js";
 import Show from "../models/Show.js";
 import { sendNewShowNotifications } from '../utils/emailService.js';
+import { createNewShowNotification } from '../utils/notificationService.js';
+import User from '../models/User.js';
 import fs from 'fs-extra';
 import path from 'path';
 
@@ -121,6 +123,16 @@ export const addShow = async (req, res) =>{
          sendNewShowNotifications(movie.title).catch(error => {
              console.error('Error sending new show notifications:', error);
          });
+
+         // Create in-app notifications for all users
+         try {
+             const users = await User.find({});
+             for (const user of users) {
+                 await createNewShowNotification(user._id, movie.title);
+             }
+         } catch (notificationError) {
+             console.error('Error creating new show notifications:', notificationError);
+         }
 
         res.json({success: true, message: 'Show Added successfully.'})
     } catch (error) {
