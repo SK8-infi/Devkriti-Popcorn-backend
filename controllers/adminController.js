@@ -426,7 +426,8 @@ export const getTheatreAdminInfo = async (req, res) => {
     }
 };
 
-
+// API to get admin analytics
+export const getAdminAnalytics = async (req, res) => {
     try {
         const userId = req.user._id;
         const { period = 'month' } = req.query;
@@ -651,7 +652,15 @@ export const getTheatreAdminInfo = async (req, res) => {
             period 
         });
         
-
+    } catch (error) {
+        console.error('getAdminAnalytics error:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to get admin analytics',
+            error: error.message 
+        });
+    }
+};
 
 // API to manually trigger booking cleanup (for testing)
 export const triggerBookingCleanupAPI = async (req, res) => {
