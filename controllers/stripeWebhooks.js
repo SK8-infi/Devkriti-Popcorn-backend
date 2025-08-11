@@ -29,6 +29,7 @@ export const stripeWebhooks = async (request, response)=>{
 
                 const booking = await Booking.findByIdAndUpdate(bookingId, {
                     isPaid: true,
+                    paymentDate: new Date(), // Add payment completion date
                     paymentLink: ""
                 }).populate({
                     path: 'show',
