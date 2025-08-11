@@ -9,7 +9,7 @@ import { generateSimpleTicket } from './simpleTicketGenerator.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Ticket template HTML
+// Hybrid ticket template - keeps visual appeal but optimized for PDF
 const ticketTemplate = `
 <!DOCTYPE html>
 <html lang="en">
@@ -26,7 +26,7 @@ const ticketTemplate = `
         
         body {
             font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            background: #1a1a1a;
             color: #ffffff;
             min-height: 100vh;
             display: flex;
@@ -36,31 +36,21 @@ const ticketTemplate = `
         }
         
         .ticket-container {
-            background: linear-gradient(145deg, #2a2a2a, #1f1f1f);
+            background: #2a2a2a;
             border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             overflow: hidden;
             max-width: 400px;
             width: 100%;
             position: relative;
+            border: 1px solid #ff6b35;
         }
         
         .ticket-header {
-            background: linear-gradient(135deg, #ff6b35, #f7931e);
+            background: #ff6b35;
             padding: 20px;
             text-align: center;
             position: relative;
-        }
-        
-        .ticket-header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="30" r="1.5" fill="rgba(255,255,255,0.1)"/><circle cx="40" cy="70" r="1" fill="rgba(255,255,255,0.1)"/></svg>');
-            opacity: 0.3;
         }
         
         .ticket-title {
@@ -91,6 +81,7 @@ const ticketTemplate = `
             font-weight: bold;
             margin-bottom: 10px;
             color: #ffd700;
+            text-align: center;
         }
         
         .info-row {
@@ -141,8 +132,8 @@ const ticketTemplate = `
         }
         
         .qr-code img {
-            width: 120px;
-            height: 120px;
+            width: 100px;
+            height: 100px;
         }
         
         .booking-id {
@@ -165,24 +156,10 @@ const ticketTemplate = `
             margin-top: 10px;
             line-height: 1.4;
         }
-        
-        .watermark {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 60px;
-            color: rgba(255, 255, 255, 0.03);
-            font-weight: bold;
-            pointer-events: none;
-            z-index: 0;
-        }
     </style>
 </head>
 <body>
     <div class="ticket-container">
-        <div class="watermark">TICKET</div>
-        
         <div class="ticket-header">
             <div class="ticket-title">🎬 Movie Ticket</div>
             <div class="ticket-subtitle">Valid Entry Pass</div>
@@ -257,7 +234,7 @@ const ticketTemplate = `
 </html>
 `;
 
-// Generate QR code for booking
+// Generate QR code for booking with optimized size
 const generateQRCode = async (bookingData) => {
     try {
         // Try different possible field names for date/time
@@ -287,13 +264,15 @@ const generateQRCode = async (bookingData) => {
             userId: bookingData.user?._id
         });
         
+        // Optimized QR code settings for smaller size
         const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
-            width: 200,
-            margin: 2,
+            width: 100, // Reduced from 200 to 100
+            margin: 1,  // Reduced margin
             color: {
                 dark: '#000000',
                 light: '#FFFFFF'
-            }
+            },
+            errorCorrectionLevel: 'M' // Medium error correction for smaller size
         });
         
         return qrCodeDataUrl;
@@ -311,11 +290,6 @@ const generateTicketHTML = async (bookingData) => {
         // Check if showDateTime exists and format it properly
         let showDate = 'Date not available';
         let showTime = 'Time not available';
-        
-        // Debug: Log the exact structure to understand the fields
-        console.log('🔍 DEBUG - Booking data keys:', Object.keys(bookingData));
-        console.log('🔍 DEBUG - Show data keys:', Object.keys(bookingData.show || {}));
-        console.log('🔍 DEBUG - Show object:', JSON.stringify(bookingData.show, null, 2));
         
         // Try different possible field names and structures
         const dateTimeField = bookingData.show?.showDateTime || 
@@ -382,55 +356,55 @@ const generateTicketHTML = async (bookingData) => {
     }
 };
 
-// Generate PDF from HTML
+// Generate PDF from HTML with optimized settings
 const generateTicketPDF = async (html, bookingId) => {
     try {
         console.log('🔄 Launching Puppeteer for PDF generation...');
         
-        // Try to detect if we're in a limited environment
-        const isLimitedEnv = process.env.NODE_ENV === 'production' || process.platform === 'linux';
-        
+        // Browser launch options optimized for Puppeteer 21.6.1
         const browser = await puppeteer.launch({
-            headless: 'new',
+            headless: 'new', // Use 'new' for Puppeteer 21.x
             args: [
-                '--no-sandbox', 
+                '--no-sandbox',
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
                 '--disable-gpu',
-                '--disable-web-security',
-                '--disable-features=VizDisplayCompositor',
+                '--no-first-run',
                 '--disable-extensions',
                 '--disable-plugins',
-                '--disable-default-apps',
-                '--no-default-browser-check',
+                '--disable-web-security',
+                '--disable-features=VizDisplayCompositor',
+                '--print-to-pdf-no-header',
                 '--disable-background-timer-throttling',
                 '--disable-renderer-backgrounding',
                 '--disable-backgrounding-occluded-windows'
             ],
-            timeout: 60000, // 60 second timeout
-            executablePath: isLimitedEnv ? '/usr/bin/google-chrome-stable' : undefined
+            timeout: 30000
         });
         
         console.log('✅ Puppeteer browser launched successfully');
         
         const page = await browser.newPage();
+        
+        // Set viewport for consistent rendering
+        await page.setViewport({ width: 800, height: 600 });
+        
         console.log('📄 Setting page content...');
-        await page.setContent(html, { waitUntil: 'networkidle0' });
+        await page.setContent(html, { waitUntil: 'domcontentloaded' });
         
         console.log('🖨️ Generating PDF...');
-        // Generate PDF
+        // Generate PDF with optimized settings
         const pdfBuffer = await page.pdf({
             format: 'A4',
             printBackground: true,
             margin: {
-                top: '20px',
-                right: '20px',
-                bottom: '20px',
-                left: '20px'
-            }
+                top: '10px',
+                right: '10px',
+                bottom: '10px',
+                left: '10px'
+            },
+            preferCSSPageSize: false,
+            displayHeaderFooter: false
         });
         
         console.log('✅ PDF generated successfully, closing browser...');
@@ -441,33 +415,24 @@ const generateTicketPDF = async (html, bookingId) => {
         await fs.ensureDir(path.dirname(pdfPath));
         await fs.writeFile(pdfPath, pdfBuffer);
         
+        console.log(`📊 PDF size: ${(pdfBuffer.length / 1024).toFixed(2)} KB`);
+        
         return {
             pdfBuffer,
             pdfPath
         };
     } catch (error) {
         console.error('❌ Error generating PDF:', error);
-        console.error('Error details:', {
-            message: error.message,
-            stack: error.stack,
-            name: error.name
-        });
         
-        // More specific error information
+        // More specific error handling
         if (error.message.includes('Protocol error')) {
-            console.error('🚨 Puppeteer Protocol Error - This often indicates Chrome/Chromium issues in deployment');
+            console.error('🚨 Puppeteer Protocol Error - Chrome/Chromium issues');
         }
         if (error.message.includes('Navigation timeout')) {
-            console.error('🚨 Navigation Timeout - Consider increasing timeout or checking page content');
+            console.error('🚨 Navigation Timeout - Page loading issues');
         }
         if (error.message.includes('spawn')) {
-            console.error('🚨 Spawn Error - Chrome/Chromium executable may be missing or permissions issue');
-        }
-        
-        // Check if this is a Chrome dependency issue
-        if (error.message.includes('libatk') || error.message.includes('shared libraries') || error.message.includes('Failed to launch')) {
-            console.error('🚨 Chrome dependencies missing - attempting simple fallback');
-            throw new Error('Chrome dependencies missing for PDF generation. Please install required system packages or use alternative PDF generation.');
+            console.error('🚨 Spawn Error - Chrome executable missing');
         }
         
         throw new Error(`PDF Generation Failed: ${error.message}`);
